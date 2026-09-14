@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Poly's Berry Planner</title>
+<title>Poly's Planner</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
@@ -250,7 +250,7 @@
   <div class="brand">
     <img class="logo" id="logoImg" alt="Team Méw">
     <img class="poly" id="polyImg" alt="">
-    <h1>Poly's Berry Planner<small>PokeMMO</small></h1>
+    <h1>Poly's Planner<small>PokeMMO</small></h1>
   </div>
   <div class="zoom"><button id="fitBtn" style="padding:3px 9px;font-size:12px">Fit week</button><span>Zoom</span><input type="range" id="zoom" min="6" max="22" step="1" value="9"></div>
 </div>
@@ -400,7 +400,7 @@
   if(!Array.isArray(state.favs)) state.favs=[]; if(!state.cycle) state.cycle=16;
   let nextId = [...state.berries,...state.timers].reduce((m,b)=>Math.max(m,b.id),0)+1;
 
-  function save(){ try{ localStorage.setItem('berryWeek', JSON.stringify({berries:state.berries, timers:state.timers, zoom:state.zoom, h12:state.h12, repeat:state.repeat, selected:state.selected, groups:state.groups, times:state.times, favs:state.favs, cycle:state.cycle, setupOpen:state.setupOpen, pw:state.pw})); }catch(e){} }
+  function save(){ try{ localStorage.setItem('berryWeek', JSON.stringify({berries:state.berries, timers:state.timers, zoom:state.zoom, h12:state.h12, repeat:state.repeat, selected:state.selected, groups:state.groups, order:state.order||[], times:state.times, favs:state.favs, cycle:state.cycle, setupOpen:state.setupOpen, pw:state.pw})); }catch(e){} }
   // ---- farm math ----
   const totalAlts = () => state.groups.reduce((m,g)=>m+(+g.alts||0),0);
   const totalPlots = () => state.groups.reduce((m,g)=>m+(+g.alts||0)*(+g.plots||0),0);
@@ -500,7 +500,7 @@
       for(let i=0;i<3;i++) lanes.appendChild(document.createElement('div')).className='lane'; return;
     }
     const p=pph(); const offs=[0];
-    for(const b of state.berries){
+    const drawBerry=b=>{
       normalize(b);
       const t=TYPES[b.type];
       const lane=document.createElement('div'); lane.className='lane'+(b.id===state.selected?' selected':''); lane.style.setProperty('--c', t.c); lane.dataset.id=b.id;
@@ -527,8 +527,8 @@
         attachMarkerDrag(hk,b,null,'harvest'); lane.appendChild(hk);
       }
       lanes.appendChild(lane);
-    }
-    for(const tm of state.timers){
+    };
+    const drawTimer=tm=>{
       normalizeTimer(tm);
       const T=TIMERS[tm.kind]; const D=durOf(tm);
       const lane=document.createElement('div'); lane.className='lane timer'+(tm.id===state.selected?' selected':''); lane.style.setProperty('--c', T.c); lane.dataset.id=tm.id;
@@ -545,8 +545,12 @@
         else { const en=el('mk tick', off+(tm.start+D)*p); en.innerHTML='<div class="dot"></div>'; en.title=`Ready again ${fmt(tm.start+D)}`; lane.appendChild(en); }
       }
       lanes.appendChild(lane);
-    }
+    };
+    for(const id of laneOrder()){ const b=state.berries.find(x=>x.id===id); if(b) drawBerry(b); else { const tm=state.timers.find(x=>x.id===id); if(tm) drawTimer(tm); } }
   }
+  // lane order: saved order first, then anything new
+  function laneOrder(){ const ids=[...state.berries,...state.timers].map(x=>x.id); const keep=(state.order||[]).filter(id=>ids.includes(id)); for(const id of ids) if(!keep.includes(id)) keep.push(id); state.order=keep; return keep; }
+  function moveLane(id,dir){ const o=laneOrder(); const i=o.indexOf(id), j=i+dir; if(i<0||j<0||j>=o.length) return; [o[i],o[j]]=[o[j],o[i]]; state.order=o; save(); render(); }
   function escape(s){ return s.replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
   // ---------- Dragging ----------
@@ -614,10 +618,10 @@
         ${labelBox(tm, tm.kind==='misc'?'e.g. Sleep, Work':'e.g. Kanto gyms')}
         <div class="events"><div class="t">${fmt(tm.start)}</div><div class="p">${escape(tName(tm))}</div>
         <div class="t">${fmt(tm.start+D)}</div><div class="r">${tm.kind==='misc'?'Ends':'Ready again'} <span class="note">${dur(D)} later${tm.kind==='misc'?', drag the end to change':''}</span></div></div>
-        <div class="muted" style="margin-top:8px">Use ← → to nudge by 30 min.</div>
-        <div class="actions"><button id="dupBtn">Duplicate</button><button id="delBtn" class="danger">Remove</button></div>`;
-      wireLabel(tm);
-      $('dupBtn').onclick=()=>{ const c={...tm, id:nextId++, start:mod(tm.start+(tm.kind==='misc'?24:D))}; state.timers.splice(state.timers.indexOf(tm)+1,0,c); state.selected=c.id; save(); render(); };
+        <div class="muted" style="margin-top:8px">Use ← → to nudge by 30 min, ↑ ↓ to move the row.</div>
+        <div class="actions"><button id="upBtn" title="Move up">▲</button><button id="downBtn" title="Move down">▼</button><button id="dupBtn">Duplicate</button><button id="delBtn" class="danger">Remove</button></div>`;
+      wireLabel(tm); $('upBtn').onclick=()=>moveLane(tm.id,-1); $('downBtn').onclick=()=>moveLane(tm.id,1);
+      $('dupBtn').onclick=()=>{ const c={...tm, id:nextId++, start:mod(tm.start+(tm.kind==='misc'?24:D))}; state.timers.splice(state.timers.indexOf(tm)+1,0,c); const o=laneOrder(); o.splice(o.indexOf(tm.id)+1,0,c.id); state.selected=c.id; save(); render(); };
       $('delBtn').onclick=()=>{ state.timers=state.timers.filter(x=>x!==tm); state.selected=null; save(); render(); };
     }
     else if(!b){ d.innerHTML='<h2>Selected item</h2><div class="muted">Click a berry or timer on the week to see its schedule.</div>'; }
@@ -640,19 +644,19 @@
           <dt>Effect</dt><dd class="n">${escape(info.e||'—')}</dd>
           <dt>Seeds / plot</dt><dd class="n"><span class="seedlist">${Object.entries(sc).map(([k,v])=>`<span>${v}× ${k}</span>`).join('')}</span></dd>
           <dt>Seeds for ${plots.toLocaleString()} plots</dt><dd class="n"><span class="seedlist">${Object.entries(sc).map(([k,v])=>`<span>${(v*plots).toLocaleString()} ${k}</span>`).join('')}</span></dd>
-          <dt>Yield / plot</dt><dd>${info.y} <span class="note">drain ${info.d}</span></dd>
-          <dt>Expected yield</dt><dd>${yr?`${(yr.min*plots).toLocaleString()}–${(yr.max*plots).toLocaleString()} <span class="note">median ${(yr.med*plots).toLocaleString()}</span>`:'—'}</dd>
+          <dt>Yield / plot</dt><dd>${info.y}${yr?` <span class="note">(avg ${yr.med})</span>`:''}</dd>
+          <dt>Expected yield</dt><dd>${yr?`${Math.round(yr.med*plots).toLocaleString()} <span class="note">${yr.med} × ${plots.toLocaleString()} plots</span>`:'—'}</dd>
           <dt>Time, all alts</dt><dd>plant ${fmtMin(mins.plant)} · water ${fmtMin(mins.water)} <span class="note">×${paidWaters}${paidWaters<b.waters.length?' (one with planting)':''}</span> · harvest ${fmtMin(mins.harvest)} · <b>${fmtMin(mins.plant+mins.water+mins.harvest)}</b></dd>
         </dl>`;
       }
       d.innerHTML = `<div class="head"><h2>Selected berry</h2><span>${spriteImg(b.name)} <span class="pill">${b.type} h</span> <button class="star ${isFav(b.name)?'on':''}" id="selFav" title="Favorite">★</button></span></div>
         ${labelBox(b, 'e.g. Full Harvest, plot 3')}
         <div class="events">${rows}</div>
-        <div class="muted" style="margin-top:8px">${b.waters.length} watering${b.waters.length===1?'':'s'} · ${dur(b.harvest)} plant-to-harvest. Use ← → to nudge by 30 min.</div>${extra}
-        <div class="actions"><button id="dupBtn">Duplicate</button><button id="resetBtn">Reset timings</button><button id="delBtn" class="danger">Remove</button></div>`;
-      wireLabel(b);
+        <div class="muted" style="margin-top:8px">${b.waters.length} watering${b.waters.length===1?'':'s'} · ${dur(b.harvest)} plant-to-harvest. Use ← → to nudge by 30 min, ↑ ↓ to move the row.</div>${extra}
+        <div class="actions"><button id="upBtn" title="Move up">▲</button><button id="downBtn" title="Move down">▼</button><button id="dupBtn">Duplicate</button><button id="resetBtn">Reset timings</button><button id="delBtn" class="danger">Remove</button></div>`;
+      wireLabel(b); $('upBtn').onclick=()=>moveLane(b.id,-1); $('downBtn').onclick=()=>moveLane(b.id,1);
       $('selFav').onclick=()=>toggleFav(b.name);
-      $('dupBtn').onclick=()=>{ const c=JSON.parse(JSON.stringify(b)); c.id=nextId++; c.plant=mod(b.plant+24); state.berries.splice(state.berries.indexOf(b)+1,0,c); state.selected=c.id; save(); render(); };
+      $('dupBtn').onclick=()=>{ const c=JSON.parse(JSON.stringify(b)); c.id=nextId++; c.plant=mod(b.plant+24); state.berries.splice(state.berries.indexOf(b)+1,0,c); const o=laneOrder(); o.splice(o.indexOf(b.id)+1,0,c.id); state.selected=c.id; save(); render(); };
       $('resetBtn').onclick=()=>{ b.waters=[]; b.harvest=null; save(); render(); };
       $('delBtn').onclick=()=>{ state.berries=state.berries.filter(x=>x!==b); state.selected=state.berries[0]?.id??null; save(); render(); };
     }
@@ -661,7 +665,7 @@
   }
   function renderTodo(){
     const ev=[];
-    for(const b of state.berries){
+    for(const b of laneOrder().map(id=>state.berries.find(x=>x.id===id)).filter(Boolean)){
       const t=TYPES[b.type]; const nm = bName(b) + (b.label?' · '+b.label:'') + ` (${b.type}h)`;
       ev.push({t:b.plant, k:'plant', n:nm, nm:b.name, id:b.id, m:allAlts('plant')});
       b.waters.forEach((w,i)=>ev.push({t:b.plant+w, k:'water', n:nm, nm:b.name, x:`#${i+1}`, id:b.id, m:(state.pw && w===0)?0:allAlts('water')}));
@@ -760,6 +764,7 @@
     const b=state.berries.find(x=>x.id===state.selected); const tm=state.timers.find(x=>x.id===state.selected); if(!b && !tm) return;
     const d=(e.key==='ArrowRight'?STEP:-STEP)*(e.shiftKey?12:1);
     if(e.key==='ArrowLeft'||e.key==='ArrowRight'){ if(b) b.plant=mod(b.plant+d); else tm.start=mod(tm.start+d); save(); render(); e.preventDefault(); }
+    if(e.key==='ArrowUp'||e.key==='ArrowDown'){ moveLane(state.selected, e.key==='ArrowUp'?-1:1); e.preventDefault(); }
     if(e.key==='Delete'||e.key==='Backspace'){ state.berries=state.berries.filter(x=>x!==b); state.timers=state.timers.filter(x=>x!==tm); state.selected=null; save(); render(); }
   });
 
