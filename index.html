@@ -92,6 +92,7 @@
   .lane{position:relative;height:var(--lane-h);border-bottom:1px solid var(--surface0)}
   .lane:last-child{border-bottom:0}
   .lane.selected{background:rgba(203,166,247,.06)}
+  .lane.lifting{background:rgba(203,166,247,.14);box-shadow:inset 0 0 0 1px var(--mauve)}
   .empty{padding:36px 16px;text-align:center;color:var(--subtext0)}
   .empty b{color:var(--text);font-weight:500}
 
@@ -316,7 +317,7 @@
       </div>
     </div>
   </div>
-  <div class="hint">Drag a berry to move it · drag the <b>droplets</b> to change when you water. Timers: drag the diamond to set the time; the bar shows the cooldown. Misc blocks (sleep, work): drag the end to change their length.</div>
+  <div class="hint">Drag a berry sideways to move it, up or down to reorder rows · drag the <b>droplets</b> to change when you water. Timers: drag the diamond to set the time; the bar shows the cooldown. Misc blocks (sleep, work): drag the end to change their length.</div>
 
   <div class="cards">
     <div class="card" id="detail"></div>
@@ -554,13 +555,28 @@
   function escape(s){ return s.replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
   // ---------- Dragging ----------
+  // Drag a bar sideways to change its time, or up/down to move its row.
+  function rowDrag(id){
+    const lanesEl=$('lanes'); const laneH=lanesEl.querySelector('.lane')?.offsetHeight||64;
+    return e=>{ const rect=lanesEl.getBoundingClientRect(); const o=laneOrder(); const cur=o.indexOf(id);
+      const target=clamp(Math.floor((e.clientY-rect.top)/laneH), 0, o.length-1);
+      if(target!==cur && cur>=0){ o.splice(cur,1); o.splice(target,0,id); state.order=o; renderLanes(); }
+      document.querySelectorAll('.lane').forEach(l=>l.classList.toggle('lifting', +l.dataset.id===id)); };
+  }
+  function axisDrag(ev, id, onMoveX){
+    const startX=ev.clientX, startY=ev.clientY; let axis=null; const moveY=rowDrag(id);
+    const move=e=>{
+      if(!axis){ const dx=Math.abs(e.clientX-startX), dy=Math.abs(e.clientY-startY); if(dx<6 && dy<6) return; axis = dy>dx ? 'y' : 'x'; }
+      if(axis==='x') onMoveX(e); else moveY(e);
+    };
+    const up=()=>{ window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',up); window.removeEventListener('pointercancel',up); save(); render(); };
+    window.addEventListener('pointermove',move); window.addEventListener('pointerup',up); window.addEventListener('pointercancel',up);
+  }
   function attachBarDrag(el,b){
     el.addEventListener('pointerdown', ev=>{
       if(ev.button!==0) return; ev.preventDefault();
       const startX=ev.clientX, startPlant=b.plant; let last=startPlant;
-      const move=e=>{ const v=mod(snap(startPlant+(e.clientX-startX)/pph())); if(v!==last){ last=v; b.plant=v; renderLanes(); renderSide(); } };
-      const up=()=>{ window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',up); window.removeEventListener('pointercancel',up); save(); render(); };
-      window.addEventListener('pointermove',move); window.addEventListener('pointerup',up); window.addEventListener('pointercancel',up);
+      axisDrag(ev, b.id, e=>{ const v=mod(snap(startPlant+(e.clientX-startX)/pph())); if(v!==last){ last=v; b.plant=v; renderLanes(); renderSide(); } });
     });
   }
   function attachMarkerDrag(el,b,i,kind){
@@ -582,10 +598,8 @@
       if(ev.button!==0) return; ev.preventDefault();
       state.selected=tm.id;
       const startX=ev.clientX, s0=tm.start; let last=s0;
-      const move=e=>{ const v=mod(snap(s0+(e.clientX-startX)/pph())); if(v===last) return; last=v; tm.start=v; renderLanes(); renderSide();
-        const lane=[...document.querySelectorAll('.lane')].find(l=>+l.dataset.id===tm.id); if(lane) lane.querySelectorAll('.mk.tstart').forEach(x=>x.classList.add('dragging')); };
-      const up=()=>{ window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',up); window.removeEventListener('pointercancel',up); save(); render(); };
-      window.addEventListener('pointermove',move); window.addEventListener('pointerup',up); window.addEventListener('pointercancel',up);
+      axisDrag(ev, tm.id, e=>{ const v=mod(snap(s0+(e.clientX-startX)/pph())); if(v===last) return; last=v; tm.start=v; renderLanes(); renderSide();
+        const lane=[...document.querySelectorAll('.lane')].find(l=>+l.dataset.id===tm.id); if(lane) lane.querySelectorAll('.mk.tstart').forEach(x=>x.classList.add('dragging')); });
     });
   }
   function attachMiscEnd(el,tm){
@@ -645,7 +659,7 @@
           <dt>Seeds / plot</dt><dd class="n"><span class="seedlist">${Object.entries(sc).map(([k,v])=>`<span>${v}× ${k}</span>`).join('')}</span></dd>
           <dt>Seeds for ${plots.toLocaleString()} plots</dt><dd class="n"><span class="seedlist">${Object.entries(sc).map(([k,v])=>`<span>${(v*plots).toLocaleString()} ${k}</span>`).join('')}</span></dd>
           <dt>Yield / plot</dt><dd>${info.y}${yr?` <span class="note">(avg ${yr.med})</span>`:''}</dd>
-          <dt>Expected yield</dt><dd>${yr?`${Math.round(yr.med*plots).toLocaleString()} <span class="note">${yr.med} × ${plots.toLocaleString()} plots</span>`:'—'}</dd>
+          <dt>Expected yield</dt><dd>${yr?`${Math.round(yr.med*plots).toLocaleString()} <span class="note">(${yr.med} × ${plots.toLocaleString()} plots)</span>`:'—'}</dd>
           <dt>Time, all alts</dt><dd>plant ${fmtMin(mins.plant)} · water ${fmtMin(mins.water)} <span class="note">×${paidWaters}${paidWaters<b.waters.length?' (one with planting)':''}</span> · harvest ${fmtMin(mins.harvest)} · <b>${fmtMin(mins.plant+mins.water+mins.harvest)}</b></dd>
         </dl>`;
       }
