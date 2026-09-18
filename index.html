@@ -92,6 +92,9 @@
   .lane{position:relative;height:var(--lane-h);border-bottom:1px solid var(--surface0)}
   .lane:last-child{border-bottom:0}
   .lane.selected{background:rgba(203,166,247,.06)}
+  .nowline{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:var(--pink);z-index:6;pointer-events:none;box-shadow:0 0 8px rgba(245,194,231,.55)}
+  .nowline .lbl{position:absolute;top:2px;left:50%;transform:translateX(-50%);background:var(--pink);color:var(--crust);font-family:var(--font-mono);font-size:9px;font-weight:600;letter-spacing:.02em;padding:1px 5px;border-radius:4px;white-space:nowrap}
+  .nowline .dot{position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);width:8px;height:8px;border-radius:50%;background:var(--pink)}
   .lane.lifting{background:rgba(203,166,247,.14);box-shadow:inset 0 0 0 1px var(--mauve)}
   .empty{padding:36px 16px;text-align:center;color:var(--subtext0)}
   .empty b{color:var(--text);font-weight:500}
@@ -253,7 +256,7 @@
     <img class="poly" id="polyImg" alt="">
     <h1>Poly's Planner<small>PokeMMO</small></h1>
   </div>
-  <div class="zoom"><button id="fitBtn" style="padding:3px 9px;font-size:12px">Fit week</button><span>Zoom</span><input type="range" id="zoom" min="6" max="22" step="1" value="9"></div>
+  <div class="zoom"><button id="nowBtn" style="padding:3px 9px;font-size:12px">Now</button><button id="fitBtn" style="padding:3px 9px;font-size:12px">Fit week</button><span>Zoom</span><input type="range" id="zoom" min="6" max="22" step="1" value="9"></div>
 </div>
 
 <details class="setupwrap" id="setupWrap">
@@ -314,6 +317,7 @@
       <div class="track" id="track">
         <div class="dayhead" id="dayhead"></div>
         <div class="lanes" id="lanes"></div>
+        <div class="nowline" id="nowline" hidden><span class="lbl" id="nowlbl"></span><span class="dot"></span></div>
       </div>
     </div>
   </div>
@@ -749,7 +753,16 @@
   }
   $('gsearch').addEventListener('input', renderGloss);
 
-  function render(){ renderHead(); renderLanes(); renderSide(); renderSetup(); }
+  // ---------- now line (viewer's local time) ----------
+  function nowHours(){ const d=new Date(); return ((d.getDay()+6)%7)*24 + d.getHours() + d.getMinutes()/60 + d.getSeconds()/3600; }
+  function nowLabel(){ const d=new Date(); let h=d.getHours(); const m=String(d.getMinutes()).padStart(2,'0'); const ap=h<12?'am':'pm'; h=h%12||12; return `${DAYS[(d.getDay()+6)%7]} ${h}:${m}${ap}`; }
+  function placeNow(){ const el=$('nowline'); if(!el) return; el.hidden=false; el.style.left=(nowHours()*pph())+'px'; $('nowlbl').textContent=nowLabel(); }
+  function scrollToNow(smooth){ const sc=$('scroller'); const x=nowHours()*pph();
+    sc.scrollTo({left:Math.max(0, x - sc.clientWidth*0.3), behavior:smooth?'smooth':'auto'}); }
+  $('nowBtn').onclick=()=>{ if(!state.zoom){ state.zoom=focusZoom(); $('zoom').value=state.zoom; save(); render(); } scrollToNow(true); };
+  function focusZoom(){ const w=$('scroller').clientWidth||1200; return Math.max(6, Math.min(22, Math.round(w/48))); }
+
+  function render(){ renderHead(); renderLanes(); renderSide(); renderSetup(); placeNow(); }
   renderGloss();
 
   // ---------- Controls ----------
@@ -782,7 +795,12 @@
     if(e.key==='Delete'||e.key==='Backspace'){ state.berries=state.berries.filter(x=>x!==b); state.timers=state.timers.filter(x=>x!==tm); state.selected=null; save(); render(); }
   });
 
+  // open focused on the current time (about two days across the screen)
+  if(!state.zoom){ state.zoom=focusZoom(); $('zoom').value=state.zoom; }
   render();
+  scrollToNow(false);
+  setInterval(placeNow, 15000);
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) placeNow(); });
 })();
 </script>
 
