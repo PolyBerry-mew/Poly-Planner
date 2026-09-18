@@ -92,9 +92,8 @@
   .lane{position:relative;height:var(--lane-h);border-bottom:1px solid var(--surface0)}
   .lane:last-child{border-bottom:0}
   .lane.selected{background:rgba(203,166,247,.06)}
-  .nowline{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:var(--pink);z-index:6;pointer-events:none;box-shadow:0 0 8px rgba(245,194,231,.55)}
-  .nowline .lbl{position:absolute;top:2px;left:50%;transform:translateX(-50%);background:var(--pink);color:var(--crust);font-family:var(--font-mono);font-size:9px;font-weight:600;letter-spacing:.02em;padding:1px 5px;border-radius:4px;white-space:nowrap}
-  .nowline .dot{position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);width:8px;height:8px;border-radius:50%;background:var(--pink)}
+  .nowline{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:var(--pink);opacity:.55;pointer-events:none}
+  .nowchip{position:absolute;top:3px;transform:translateX(-50%);z-index:7;background:color-mix(in srgb,var(--pink) 30%,transparent);color:var(--pink);border:1px solid color-mix(in srgb,var(--pink) 55%,transparent);font-family:var(--font-mono);font-size:9px;font-weight:600;letter-spacing:.02em;padding:0 5px;border-radius:4px;white-space:nowrap;pointer-events:none}
   .lane.lifting{background:rgba(203,166,247,.14);box-shadow:inset 0 0 0 1px var(--mauve)}
   .empty{padding:36px 16px;text-align:center;color:var(--subtext0)}
   .empty b{color:var(--text);font-weight:500}
@@ -317,7 +316,7 @@
       <div class="track" id="track">
         <div class="dayhead" id="dayhead"></div>
         <div class="lanes" id="lanes"></div>
-        <div class="nowline" id="nowline" hidden><span class="lbl" id="nowlbl"></span><span class="dot"></span></div>
+        <div class="nowchip" id="nowlbl" hidden></div>
       </div>
     </div>
   </div>
@@ -500,6 +499,7 @@
   function el(cls, left, width){ const e=document.createElement('div'); e.className=cls; e.style.left=left+'px'; if(width!=null) e.style.width=width+'px'; return e; }
   function renderLanes(){
     const lanes=$('lanes'); lanes.innerHTML='';
+    const nl=document.createElement('div'); nl.className='nowline'; nl.id='nowline'; lanes.appendChild(nl);  // first, so grid and bars paint over it
     const grid=document.createElement('div'); grid.className='gridlines'; lanes.appendChild(grid);
     if(!state.berries.length && !state.timers.length){
       for(let i=0;i<3;i++) lanes.appendChild(document.createElement('div')).className='lane'; return;
@@ -767,7 +767,10 @@
     $('addTDay').value=String(day); $('addTTime').value=String(t);
     autoPick={d:String(day), t:String(t)};
   }
-  function placeNow(){ const el=$('nowline'); if(!el) return; el.hidden=false; el.style.left=(nowHours()*pph())+'px'; $('nowlbl').textContent=nowLabel(); setPickersToNow(); }
+  function placeNow(){ const x=nowHours()*pph(), line=$('nowline'), chip=$('nowlbl');
+    if(line) line.style.left=x+'px';
+    if(chip){ chip.hidden=false; chip.style.left=x+'px'; chip.textContent=nowLabel(); }
+    setPickersToNow(); }
   function scrollToNow(smooth){ const sc=$('scroller'); const x=nowHours()*pph();
     sc.scrollTo({left:Math.max(0, x - sc.clientWidth*0.3), behavior:smooth?'smooth':'auto'}); }
   $('nowBtn').onclick=()=>{ if(!state.zoom){ state.zoom=focusZoom(); $('zoom').value=state.zoom; save(); render(); } scrollToNow(true); };
