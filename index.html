@@ -321,7 +321,7 @@
       </div>
     </div>
   </div>
-  <div class="hint">Drag a berry sideways to move it, up or down to reorder rows · drag the <b>droplets</b> to change when you water. Timers: drag the diamond to set the time; the bar shows the cooldown. Misc blocks (sleep, work): drag the end to change their length.</div>
+  <div class="hint">The pink line is now, in your local time; new berries and timers default to it. Drag a berry sideways to move it, up or down to reorder rows · drag the <b>droplets</b> to change when you water. Timers: drag the diamond to set the time; the bar shows the cooldown. Misc blocks (sleep, work): drag the end to change their length.</div>
 
   <div class="cards">
     <div class="card" id="detail"></div>
@@ -756,7 +756,18 @@
   // ---------- now line (viewer's local time) ----------
   function nowHours(){ const d=new Date(); return ((d.getDay()+6)%7)*24 + d.getHours() + d.getMinutes()/60 + d.getSeconds()/3600; }
   function nowLabel(){ const d=new Date(); let h=d.getHours(); const m=String(d.getMinutes()).padStart(2,'0'); const ap=h<12?'am':'pm'; h=h%12||12; return `${DAYS[(d.getDay()+6)%7]} ${h}:${m}${ap}`; }
-  function placeNow(){ const el=$('nowline'); if(!el) return; el.hidden=false; el.style.left=(nowHours()*pph())+'px'; $('nowlbl').textContent=nowLabel(); }
+  // ---------- default the Plant on / At pickers to the current time ----------
+  let autoPick=null;   // the values we filled in, so we don't overwrite the user's choice
+  function setPickersToNow(force){
+    const h=mod(snap(nowHours())), day=Math.floor(h/24)*24, t=h%24;
+    const touched = autoPick && ($('addDay').value!==autoPick.d || $('addTime').value!==autoPick.t
+                              || $('addTDay').value!==autoPick.d || $('addTTime').value!==autoPick.t);
+    if(touched && !force) return;
+    $('addDay').value=String(day); $('addTime').value=String(t);
+    $('addTDay').value=String(day); $('addTTime').value=String(t);
+    autoPick={d:String(day), t:String(t)};
+  }
+  function placeNow(){ const el=$('nowline'); if(!el) return; el.hidden=false; el.style.left=(nowHours()*pph())+'px'; $('nowlbl').textContent=nowLabel(); setPickersToNow(); }
   function scrollToNow(smooth){ const sc=$('scroller'); const x=nowHours()*pph();
     sc.scrollTo({left:Math.max(0, x - sc.clientWidth*0.3), behavior:smooth?'smooth':'auto'}); }
   $('nowBtn').onclick=()=>{ if(!state.zoom){ state.zoom=focusZoom(); $('zoom').value=state.zoom; save(); render(); } scrollToNow(true); };
@@ -797,6 +808,7 @@
 
   // open focused on the current time (about two days across the screen)
   if(!state.zoom){ state.zoom=focusZoom(); $('zoom').value=state.zoom; }
+  setPickersToNow(true);
   render();
   scrollToNow(false);
   setInterval(placeNow, 15000);
