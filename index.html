@@ -418,7 +418,7 @@
   const seedCounts = name => { const c={}; (BDATA[name]?.s||[]).forEach(x=>c[x]=(c[x]||0)+1); return c; };
   const isFav = n => state.favs.includes(n);
   function toggleFav(n){ state.favs = isFav(n) ? state.favs.filter(x=>x!==n) : [...state.favs,n]; save(); buildPicker(); renderGloss(); renderSide(); }
-  const weeks = () => state.repeat ? 2 : 1;
+  const weeks = () => 1;   // one Mon–Sun week that loops: anything past Sunday wraps to Monday
   function normalizeTimer(t){ t.start=mod(snap(t.start)); delete t.end; }
   const snap = v => Math.round(v/STEP)*STEP;
   const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
@@ -446,14 +446,14 @@
   function waterDeadline(b,i){ const t=TYPES[b.type]; return i===0 ? t.first : b.waters[i-1]+t.next; }
   function waterEarliest(b,i){ return i===0 ? 0 : b.waters[i-1]+STEP; }
 
-  function fmt(h){ // absolute hour → "Tue 7:30am", "next Mon 6:00am" past Sunday
-    const d = Math.floor(h/24), hr = Math.floor(h%24), m = (h%1)?'30':'00';
+  function fmt(h){ // hour in the looping week → "Tue 7:30am"
+    h = mod(h); const d = Math.floor(h/24), hr = Math.floor(h%24), m = (h%1)?'30':'00';
     let hs;
     if(state.h12){ const ap = hr<12?'am':'pm'; const h1 = hr%12||12; hs = `${String(h1).padStart(2,' ')}:${m}${ap}`; }
     else hs = `${String(hr).padStart(2,'0')}:${m}`;
-    return `${d>=7?'next ':''}${DAYS[d%7]} ${hs}`;
+    return `${DAYS[d]} ${hs}`;
   }
-  function fmtT(h){ return fmt(h).replace(/^(next )?\w{3} /,''); }
+  function fmtT(h){ return fmt(h).replace(/^\w{3} /,''); }
   function dur(h){ return h%1 ? `${Math.floor(h)}h30` : `${h}h`; }
 
   // ---------- Build header + selects ----------
@@ -492,8 +492,14 @@
     $('lanes').style.setProperty('--sixpx', (6*pph())+'px');
   }
 
-  // a bar simply continues into the following week (the second Mon–Sun on screen)
-  function pieces(start,len){ return [[start, len, '']]; }
+  // split [start, start+len) into on-screen pieces, wrapping past Sunday back to Monday
+  function pieces(start,len){
+    const s=mod(start), out=[];
+    if(len<=0) return out;
+    if(s+len<=WEEK) out.push([s,len,'']);
+    else { out.push([s,WEEK-s,'wrapL']); out.push([0,Math.min(s+len-WEEK,WEEK),'wrapR']); }
+    return out;
+  }
 
   // ---------- Lanes ----------
   function el(cls, left, width){ const e=document.createElement('div'); e.className=cls; e.style.left=left+'px'; if(width!=null) e.style.width=width+'px'; return e; }
@@ -519,14 +525,14 @@
         for(const [s,len,cls] of pieces(b.plant+t.grow, PICKUP)) lane.appendChild(el('seg window '+cls, off+s*p, len*p));
         b.waters.forEach((w,i)=>{ const dl=Math.min(waterDeadline(b,i), t.grow); if(dl>w) for(const [s,len] of pieces(b.plant+w, dl-w)) lane.appendChild(el('slack w', off+s*p, len*p)); });
         if(b.harvest < t.grow+PICKUP) for(const [s,len] of pieces(b.plant+b.harvest, t.grow+PICKUP-b.harvest)) lane.appendChild(el('slack h', off+s*p, len*p));
-        lane.appendChild(el('mk ready', off+(b.plant+t.grow)*p));
+        lane.appendChild(el('mk ready', off+mod(b.plant+t.grow)*p));
         b.waters.forEach((w,i)=>{
-          const mk=el('mk water', off+(b.plant+w)*p); mk.dataset.idx=i;
+          const mk=el('mk water', off+mod(b.plant+w)*p); mk.dataset.idx=i;
           mk.title=`Water #${i+1} · ${fmt(b.plant+w)} (latest ${fmt(b.plant+Math.min(waterDeadline(b,i),t.grow-STEP))})`;
           mk.innerHTML=`<div class="dot"></div><div class="lbl">${fmtT(b.plant+w)}</div>`;
           attachMarkerDrag(mk,b,i,'water'); lane.appendChild(mk);
         });
-        const hk=el('mk harvest', off+(b.plant+b.harvest)*p);
+        const hk=el('mk harvest', off+mod(b.plant+b.harvest)*p);
         hk.title=`Harvest · ${fmt(b.plant+b.harvest)} (latest ${fmt(b.plant+t.grow+PICKUP)})`;
         hk.innerHTML=`<div class="dot"></div><div class="lbl">${fmtT(b.plant+b.harvest)}</div>`;
         attachMarkerDrag(hk,b,null,'harvest'); lane.appendChild(hk);
@@ -546,15 +552,15 @@
         }
         const st=el('mk tstart', off+tm.start*p); st.title=`${tName(tm)} · ${fmt(tm.start)}`; st.innerHTML=`<div class="dot"></div><div class="lbl">${fmtT(tm.start)}</div>`;
         attachTimerDrag(st,tm,'move'); lane.appendChild(st);
-        if(tm.kind==='misc'){ const en=el('mk tend', off+(tm.start+D)*p); en.title=`Ends ${fmt(tm.start+D)} · drag to change length`; en.innerHTML=`<div class="lbl">${fmtT(tm.start+D)}</div>`; attachMiscEnd(en,tm); lane.appendChild(en); }
-        else { const en=el('mk tick', off+(tm.start+D)*p); en.innerHTML='<div class="dot"></div>'; en.title=`Ready again ${fmt(tm.start+D)}`; lane.appendChild(en); }
+        if(tm.kind==='misc'){ const en=el('mk tend', off+mod(tm.start+D)*p); en.title=`Ends ${fmt(tm.start+D)} · drag to change length`; en.innerHTML=`<div class="lbl">${fmtT(tm.start+D)}</div>`; attachMiscEnd(en,tm); lane.appendChild(en); }
+        else { const en=el('mk tick', off+mod(tm.start+D)*p); en.innerHTML='<div class="dot"></div>'; en.title=`Ready again ${fmt(tm.start+D)}`; lane.appendChild(en); }
       }
       lanes.appendChild(lane);
     };
     for(const id of laneOrder()){ const b=state.berries.find(x=>x.id===id); if(b) drawBerry(b); else { const tm=state.timers.find(x=>x.id===id); if(tm) drawTimer(tm); } }
   }
   // lane order: saved order first, then anything new
-  function laneOrder(){ const ids=[...state.berries,...state.timers].map(x=>x.id); const keep=(state.order||[]).filter(id=>ids.includes(id)); for(const id of ids) if(!keep.includes(id)) keep.push(id); state.order=keep; return keep; }
+  function laneOrder(){ const ids=[...state.berries,...state.timers].map(x=>x.id); const keep=[...new Set((state.order||[]).filter(id=>ids.includes(id)))]; for(const id of ids) if(!keep.includes(id)) keep.push(id); state.order=keep; return keep; }
   function moveLane(id,dir){ const o=laneOrder(); const i=o.indexOf(id), j=i+dir; if(i<0||j<0||j>=o.length) return; [o[i],o[j]]=[o[j],o[i]]; state.order=o; save(); render(); }
   function escape(s){ return s.replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
@@ -639,7 +645,9 @@
         <div class="muted" style="margin-top:8px">Use ← → to nudge by 30 min, ↑ ↓ to move the row.</div>
         <div class="actions"><button id="upBtn" title="Move up">▲</button><button id="downBtn" title="Move down">▼</button><button id="dupBtn">Duplicate</button><button id="delBtn" class="danger">Remove</button></div>`;
       wireLabel(tm); $('upBtn').onclick=()=>moveLane(tm.id,-1); $('downBtn').onclick=()=>moveLane(tm.id,1);
-      $('dupBtn').onclick=()=>{ const c={...tm, id:nextId++, start:mod(tm.start+(tm.kind==='misc'?24:D))}; state.timers.splice(state.timers.indexOf(tm)+1,0,c); const o=laneOrder(); o.splice(o.indexOf(tm.id)+1,0,c.id); state.selected=c.id; save(); render(); };
+      $('dupBtn').onclick=()=>{ const c={...tm, id:nextId++, start:mod(tm.start+(tm.kind==='misc'?24:D))};
+        const o=laneOrder(); o.splice(o.indexOf(tm.id)+1,0,c.id);   // place in the order before it exists, so laneOrder can't append it too
+        state.timers.splice(state.timers.indexOf(tm)+1,0,c); state.selected=c.id; save(); render(); };
       $('delBtn').onclick=()=>{ state.timers=state.timers.filter(x=>x!==tm); state.selected=null; save(); render(); };
     }
     else if(!b){ d.innerHTML='<h2>Selected item</h2><div class="muted">Click a berry or timer on the week to see its schedule.</div>'; }
@@ -674,7 +682,9 @@
         <div class="actions"><button id="upBtn" title="Move up">▲</button><button id="downBtn" title="Move down">▼</button><button id="dupBtn">Duplicate</button><button id="resetBtn">Reset timings</button><button id="delBtn" class="danger">Remove</button></div>`;
       wireLabel(b); $('upBtn').onclick=()=>moveLane(b.id,-1); $('downBtn').onclick=()=>moveLane(b.id,1);
       $('selFav').onclick=()=>toggleFav(b.name);
-      $('dupBtn').onclick=()=>{ const c=JSON.parse(JSON.stringify(b)); c.id=nextId++; c.plant=mod(b.plant+24); state.berries.splice(state.berries.indexOf(b)+1,0,c); const o=laneOrder(); o.splice(o.indexOf(b.id)+1,0,c.id); state.selected=c.id; save(); render(); };
+      $('dupBtn').onclick=()=>{ const c=JSON.parse(JSON.stringify(b)); c.id=nextId++; c.plant=mod(b.plant+24);
+        const o=laneOrder(); o.splice(o.indexOf(b.id)+1,0,c.id);
+        state.berries.splice(state.berries.indexOf(b)+1,0,c); state.selected=c.id; save(); render(); };
       $('resetBtn').onclick=()=>{ b.waters=[]; b.harvest=null; save(); render(); };
       $('delBtn').onclick=()=>{ state.berries=state.berries.filter(x=>x!==b); state.selected=state.berries[0]?.id??null; save(); render(); };
     }
@@ -685,9 +695,9 @@
     const ev=[];
     for(const b of laneOrder().map(id=>state.berries.find(x=>x.id===id)).filter(Boolean)){
       const t=TYPES[b.type]; const nm = bName(b) + (b.label?' · '+b.label:'') + ` (${b.type}h)`;
-      ev.push({t:b.plant, k:'plant', n:nm, nm:b.name, id:b.id, m:allAlts('plant')});
-      b.waters.forEach((w,i)=>ev.push({t:b.plant+w, k:'water', n:nm, nm:b.name, x:`#${i+1}`, id:b.id, m:(state.pw && w===0)?0:allAlts('water')}));
-      ev.push({t:b.plant+b.harvest, k:'harvest', n:nm, nm:b.name, id:b.id, m:allAlts('harvest')});
+      ev.push({t:mod(b.plant), k:'plant', n:nm, nm:b.name, id:b.id, m:allAlts('plant')});
+      b.waters.forEach((w,i)=>ev.push({t:mod(b.plant+w), k:'water', n:nm, nm:b.name, x:`#${i+1}`, id:b.id, m:(state.pw && w===0)?0:allAlts('water')}));
+      ev.push({t:mod(b.plant+b.harvest), k:'harvest', n:nm, nm:b.name, id:b.id, m:allAlts('harvest')});
     }
     for(const tm of state.timers){ const T=TIMERS[tm.kind]; ev.push({t:mod(tm.start), k:T.verb, n:tName(tm), id:tm.id}); }
     ev.sort((a,b)=>a.t-b.t);
@@ -699,7 +709,7 @@
     let day=-1, grp=null;
     for(const e of ev){
       const d=Math.floor(e.t/24);
-      if(d!==day){ day=d; const dm=ev.filter(x=>Math.floor(x.t/24)===d).reduce((m,x)=>m+(x.m||0),0); grp=document.createElement('div'); grp.className='daygroup'; grp.innerHTML=`<h3>${DAYS[d%7]}${d>=7?' <span class="muted">next week</span>':''}${dm?`<span class="todo-min">${fmtMin(dm)}</span>`:''}</h3><div class="check"></div>`; todo.appendChild(grp); }
+      if(d!==day){ day=d; const dm=ev.filter(x=>Math.floor(x.t/24)===d).reduce((m,x)=>m+(x.m||0),0); grp=document.createElement('div'); grp.className='daygroup'; grp.innerHTML=`<h3>${DAYS[d]}${dm?`<span class="todo-min">${fmtMin(dm)}</span>`:''}</h3><div class="check"></div>`; todo.appendChild(grp); }
       const c=grp.querySelector('.check');
       c.insertAdjacentHTML('beforeend', `<div class="t">${fmtT(e.t)}</div><div class="k ${e.k}">${e.k}</div><div class="n">${spriteImg(e.nm)}${escape(e.n)}<em>${e.x||''}</em></div>`);
     }
