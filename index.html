@@ -89,12 +89,40 @@
       linear-gradient(to right, var(--surface1) 1px, transparent 1px),
       linear-gradient(to right, rgba(88,91,112,.35) 1px, transparent 1px);
     background-size:var(--daypx) 100%, var(--sixpx) 100%;}
-  .lane{position:relative;height:var(--lane-h);border-bottom:1px solid var(--surface0)}
+  .lane{position:relative;--sh:var(--lane-h);height:calc(var(--sh) * var(--subs,1));border-bottom:1px solid var(--surface0)}
+  .sub{position:absolute;left:0;right:0;height:var(--sh);top:calc(var(--sh) * var(--i,0))}
+  /* stacked (overlapping) items in a merged row ride thinner slots instead of full-height ones */
+  .lane.tight{--sh:34px}
+  .lane.tight .sub + .sub{border-top:1px solid rgba(88,91,112,.35)}
+  /* in a merged row the sub-slots overlay each other, so only the bars themselves take clicks */
+  .lane.merged .sub{pointer-events:none}
+  .lane.merged .sub > *{pointer-events:auto}
+  .lane.merged .sub > .seg.window,.lane.merged .sub > .slack,.lane.merged .sub > .mk.ready{pointer-events:none}
+  .lane.tight .seg{top:7px;height:19px;font-size:11px;border-radius:5px}
+  .lane.tight .seg .sprite{width:15px;height:15px;margin-right:3px}
+  .lane.tight .seg .tag{font-size:9px;margin-right:4px}
+  .lane.tight .seg.tline{top:13px;height:8px}
+  .lane.tight .seg.tline .tl{top:-12px;left:8px;font-size:11px}
+  .lane.tight .seg.tline.misc{top:7px;height:19px}
+  .lane.tight .seg.tline.misc .tl{top:2px}
+  .lane.tight .mk{top:3px;height:25px}
+  .lane.tight .mk .dot{width:10px;height:10px;top:-2px;left:3px;border-width:1px}
+  .lane.tight .mk .lbl{top:26px;font-size:8px}
+  .lane.tight .slack{top:12px}
+  .lane.tight .mk.tick{top:11px;height:12px}
+  .lane.tight .mk.tick .dot{left:3px;top:1px;width:8px;height:8px}
+  .lane.tight .mk.tstart{top:7px;height:21px}
+  .lane.tight .mk.tstart .dot{left:2px;top:4px;width:11px;height:11px}
+  .lane.tight .mk.tstart .lbl{top:22px}
+  .lane.tight .mk.tend{top:7px;height:21px}
+  .lane.tight .mk.tend::before{top:2px;bottom:2px}
+  .lane.tight .mk.tend .lbl{top:22px}
+  .lane.merged{background:rgba(203,166,247,.035)}
   .lane:last-child{border-bottom:0}
-  .lane.selected{background:rgba(203,166,247,.06)}
+  .sub.selected{background:rgba(203,166,247,.07)}
   .nowline{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:var(--pink);opacity:.55;pointer-events:none}
   .nowchip{position:absolute;top:3px;transform:translateX(-50%);z-index:7;background:color-mix(in srgb,var(--pink) 30%,transparent);color:var(--pink);border:1px solid color-mix(in srgb,var(--pink) 55%,transparent);font-family:var(--font-mono);font-size:9px;font-weight:600;letter-spacing:.02em;padding:0 5px;border-radius:4px;white-space:nowrap;pointer-events:none}
-  .lane.lifting{background:rgba(203,166,247,.14);box-shadow:inset 0 0 0 1px var(--mauve)}
+  .sub.lifting{background:rgba(203,166,247,.14);box-shadow:inset 0 0 0 1px var(--mauve)}
   .empty{padding:36px 16px;text-align:center;color:var(--subtext0)}
   .empty b{color:var(--text);font-weight:500}
 
@@ -109,7 +137,7 @@
   .seg.window.wrapL{border-radius:0}
   .seg:active{cursor:grabbing}
   .seg .tag{font-family:var(--font-mono);font-size:10px;color:var(--c);margin-right:6px;font-weight:600}
-  .selected .seg.grow{box-shadow:0 0 0 1px var(--c)}
+  .sub.selected .seg.grow{box-shadow:0 0 0 1px var(--c)}
 
   .mk{position:absolute;top:8px;width:16px;height:42px;margin-left:-8px;cursor:ew-resize;touch-action:none;z-index:2;user-select:none}
   .mk::before{content:"";position:absolute;left:7px;top:0;bottom:0;width:2px;background:var(--mc);border-radius:1px}
@@ -130,7 +158,7 @@
   .seg.tline{top:24px;height:12px;border-radius:999px;padding:0;overflow:visible;background:color-mix(in srgb,var(--c) 18%,transparent);border-color:color-mix(in srgb,var(--c) 45%,transparent)}
   .seg.tline .tl{position:absolute;left:10px;top:-19px;font-size:12px;font-weight:500;color:var(--text);white-space:nowrap}
   .seg.tline .tl .tag{color:var(--c)}
-  .selected .seg.tline{box-shadow:0 0 0 1px var(--c)}
+  .sub.selected .seg.tline{box-shadow:0 0 0 1px var(--c)}
   .mk.tick{--mc:var(--c);top:22px;height:16px;width:16px;cursor:default;pointer-events:none}
   .mk.tick::before{display:none}
   .mk.tick .dot{left:3px;top:3px;width:10px;height:10px;border-radius:2px;transform:rotate(45deg);border-width:1px}
@@ -180,6 +208,7 @@
   .rules th{color:var(--overlay1);font-weight:500}
   .rules td:first-child,.rules th:first-child{text-align:left}
   .rules p{margin:8px 0 0}
+  .rules .gr{color:var(--peach)}
   .legend{display:flex;flex-wrap:wrap;gap:10px 14px;font-size:11px;color:var(--subtext0);margin-top:8px;align-items:center}
   .legend i{display:inline-block;width:10px;height:10px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);margin-right:5px;vertical-align:-1px}
   .legend i.sq{border-radius:2px;transform:none}
@@ -255,7 +284,7 @@
     <img class="poly" id="polyImg" alt="">
     <h1>Poly's Planner<small>PokeMMO</small></h1>
   </div>
-  <div class="zoom"><button id="nowBtn" style="padding:3px 9px;font-size:12px">Now</button><button id="fitBtn" style="padding:3px 9px;font-size:12px">Fit week</button><span>Zoom</span><input type="range" id="zoom" min="6" max="22" step="1" value="9"></div>
+  <div class="zoom"><button id="condenseBtn" style="padding:3px 9px;font-size:12px" title="Pack schedules that don't overlap onto shared rows">Condense</button><button id="expandBtn" style="padding:3px 9px;font-size:12px" title="Give every schedule its own row">Expand</button><button id="nowBtn" style="padding:3px 9px;font-size:12px">Now</button><button id="fitBtn" style="padding:3px 9px;font-size:12px">Fit week</button><span>Zoom</span><input type="range" id="zoom" min="6" max="22" step="1" value="9"></div>
 </div>
 
 <details class="setupwrap" id="setupWrap">
@@ -320,25 +349,25 @@
       </div>
     </div>
   </div>
-  <div class="hint">The pink line is now, in your local time; new berries and timers default to it. Drag a berry sideways to move it, up or down to reorder rows · drag the <b>droplets</b> to change when you water. Timers: drag the diamond to set the time; the bar shows the cooldown. Misc blocks (sleep, work): drag the end to change their length.</div>
+  <div class="hint">Drag a row sideways to move it, up or down to reorder. Drag the <b>droplets</b> to change watering times, the <i>square</i> to change harvest, and the end of a misc block to change its length. <b>Merge ↑</b> shares a row with the one above (up to 3); <b>Condense</b> packs everything that doesn't overlap.</div>
 
   <div class="cards">
     <div class="card" id="detail"></div>
     <div class="card">
-      <div class="head"><h2>Weekly to-do</h2><span class="muted" id="todoCount"></span></div>
+      <div class="head"><h2>Weekly to-do</h2></div>
       <div id="todo"></div>
     </div>
     <div class="card rules">
       <h2>Watering rules</h2>
       <table>
         <tr><th>Berry</th><th>1st water by</th><th>then every</th><th>waters</th></tr>
-        <tr><td>16 h</td><td>7 h</td><td>12 h</td><td>1 (water ≥4 h in)</td></tr>
-        <tr><td>20 h</td><td>7 h</td><td>12 h</td><td>2</td></tr>
-        <tr><td>42 h</td><td>8 h</td><td>15 h</td><td>3</td></tr>
-        <tr><td>44 h</td><td>8 h</td><td>15 h</td><td>3</td></tr>
-        <tr><td>67 h</td><td>8 h</td><td>15 h</td><td>4</td></tr>
+        <tr><td>16 h</td><td>7 h</td><td>12 h <span class="gr">(+1)</span></td><td>1 (water ≥4 h in)</td></tr>
+        <tr><td>20 h</td><td>7 h</td><td>12 h <span class="gr">(+1)</span></td><td>2</td></tr>
+        <tr><td>42 h</td><td>8 h</td><td>15 h <span class="gr">(+1)</span></td><td>3</td></tr>
+        <tr><td>44 h</td><td>8 h</td><td>15 h <span class="gr">(+1)</span></td><td>3</td></tr>
+        <tr><td>67 h</td><td>8 h</td><td>15 h <span class="gr">(+1)</span></td><td>4</td></tr>
       </table>
-      <p>Planted berries start with 2 droplets; a watering fills them to 5. Going even a minute past a deadline loses yield. Once a berry is ready you have 7 hours to pick it up. Watering earlier than the deadline is fine, but it may mean one extra watering, the planner adds it for you.</p>
+      <p>Planted berries start with 2 droplets; a watering fills them to 5. The planner schedules on the safe times above. The <span class="gr">(+1)</span> is grace: the berry flashes for about an hour past that mark and still keeps full yield if watered by 13 h / 16 h, and the <b>1st water by</b> times already include it. Once ready you have 7 hours to pick it up. Watering early is fine, but it may mean one extra watering, which the planner adds for you.</p>
       <div class="legend">
         <span><i style="background:var(--sapphire)"></i>water</span>
         <span><i class="sq" style="background:var(--yellow)"></i>harvest</span>
@@ -404,7 +433,7 @@
   if(!Array.isArray(state.favs)) state.favs=[]; if(!state.cycle) state.cycle=16;
   let nextId = [...state.berries,...state.timers].reduce((m,b)=>Math.max(m,b.id),0)+1;
 
-  function save(){ try{ localStorage.setItem('berryWeek', JSON.stringify({berries:state.berries, timers:state.timers, zoom:state.zoom, h12:state.h12, repeat:state.repeat, selected:state.selected, groups:state.groups, order:state.order||[], times:state.times, favs:state.favs, cycle:state.cycle, setupOpen:state.setupOpen, pw:state.pw})); }catch(e){} }
+  function save(){ try{ localStorage.setItem('berryWeek', JSON.stringify({berries:state.berries, timers:state.timers, zoom:state.zoom, h12:state.h12, repeat:state.repeat, selected:state.selected, groups:state.groups, rows:state.rows||[], times:state.times, favs:state.favs, cycle:state.cycle, setupOpen:state.setupOpen, pw:state.pw})); }catch(e){} }
   // ---- farm math ----
   const totalAlts = () => state.groups.reduce((m,g)=>m+(+g.alts||0),0);
   const totalPlots = () => state.groups.reduce((m,g)=>m+(+g.alts||0)*(+g.plots||0),0);
@@ -438,7 +467,7 @@
       out.push(v); prev=v; deadline=v+t.next;
     }
     b.waters = out;
-    if(b.harvest==null) b.harvest = t.grow+PICKUP;
+    if(b.harvest==null) b.harvest = t.grow;   // default: pick as soon as it's ready; drag right for the full 7 h window
     b.harvest = snap(clamp(b.harvest, t.grow, t.grow+PICKUP));
     b.plant = mod(snap(b.plant));
   }
@@ -511,10 +540,10 @@
       for(let i=0;i<3;i++) lanes.appendChild(document.createElement('div')).className='lane'; return;
     }
     const p=pph(); const offs=[0];
-    const drawBerry=b=>{
+    const drawBerry=(b,host)=>{
       normalize(b);
       const t=TYPES[b.type];
-      const lane=document.createElement('div'); lane.className='lane'+(b.id===state.selected?' selected':''); lane.style.setProperty('--c', t.c); lane.dataset.id=b.id;
+      const lane=host; lane.classList.toggle('selected', b.id===state.selected); lane.style.setProperty('--c', t.c); lane.dataset.id=b.id;
       lane.addEventListener('pointerdown', ()=>{ if(state.selected!==b.id){ state.selected=b.id; save(); render(); } });
       for(const off of offs){
         for(const [s,len,cls] of pieces(b.plant, t.grow)){
@@ -537,12 +566,11 @@
         hk.innerHTML=`<div class="dot"></div><div class="lbl">${fmtT(b.plant+b.harvest)}</div>`;
         attachMarkerDrag(hk,b,null,'harvest'); lane.appendChild(hk);
       }
-      lanes.appendChild(lane);
     };
-    const drawTimer=tm=>{
+    const drawTimer=(tm,host)=>{
       normalizeTimer(tm);
       const T=TIMERS[tm.kind]; const D=durOf(tm);
-      const lane=document.createElement('div'); lane.className='lane timer'+(tm.id===state.selected?' selected':''); lane.style.setProperty('--c', T.c); lane.dataset.id=tm.id;
+      const lane=host; lane.classList.add('timer'); lane.classList.toggle('selected', tm.id===state.selected); lane.style.setProperty('--c', T.c); lane.dataset.id=tm.id;
       lane.addEventListener('pointerdown', ()=>{ if(state.selected!==tm.id){ state.selected=tm.id; save(); render(); } });
       for(const off of offs){
         for(const [st,len,cls] of pieces(tm.start, D)){
@@ -555,23 +583,88 @@
         if(tm.kind==='misc'){ const en=el('mk tend', off+mod(tm.start+D)*p); en.title=`Ends ${fmt(tm.start+D)} · drag to change length`; en.innerHTML=`<div class="lbl">${fmtT(tm.start+D)}</div>`; attachMiscEnd(en,tm); lane.appendChild(en); }
         else { const en=el('mk tick', off+mod(tm.start+D)*p); en.innerHTML='<div class="dot"></div>'; en.title=`Ready again ${fmt(tm.start+D)}`; lane.appendChild(en); }
       }
-      lanes.appendChild(lane);
     };
-    for(const id of laneOrder()){ const b=state.berries.find(x=>x.id===id); if(b) drawBerry(b); else { const tm=state.timers.find(x=>x.id===id); if(tm) drawTimer(tm); } }
+    for(const ids of rowsOf()){
+      const {at, subs}=packRow(ids);
+      const lane=document.createElement('div'); lane.className='lane'+(ids.length>1?' merged tight':''); lane.style.setProperty('--subs', subs);
+      for(const id of ids){
+        const sub=document.createElement('div'); sub.className='sub'; sub.style.setProperty('--i', at[id]);
+        const b=state.berries.find(x=>x.id===id);
+        if(b) drawBerry(b, sub); else { const tm=state.timers.find(x=>x.id===id); if(tm) drawTimer(tm, sub); else continue; }
+        lane.appendChild(sub);
+      }
+      lanes.appendChild(lane);
+    }
   }
-  // lane order: saved order first, then anything new
-  function laneOrder(){ const ids=[...state.berries,...state.timers].map(x=>x.id); const keep=[...new Set((state.order||[]).filter(id=>ids.includes(id)))]; for(const id of ids) if(!keep.includes(id)) keep.push(id); state.order=keep; return keep; }
-  function moveLane(id,dir){ const o=laneOrder(); const i=o.indexOf(id), j=i+dir; if(i<0||j<0||j>=o.length) return; [o[i],o[j]]=[o[j],o[i]]; state.order=o; save(); render(); }
+  // ---------- rows: each row holds 1-3 items; new items get their own row ----------
+  const MAXROW=3;
+  function rowsOf(){
+    const ids=new Set([...state.berries,...state.timers].map(x=>x.id));
+    const src = Array.isArray(state.rows) ? state.rows : (Array.isArray(state.order) ? state.order.map(id=>[id]) : []);
+    const seen=new Set(), out=[];
+    for(const r of src){
+      let row=[];
+      for(const id of (Array.isArray(r)?r:[r])) if(ids.has(id) && !seen.has(id)){ seen.add(id); row.push(id); }
+      while(row.length) out.push(row.splice(0,MAXROW));
+    }
+    for(const id of ids) if(!seen.has(id)){ out.push([id]); seen.add(id); }
+    state.rows=out; return out;
+  }
+  const laneOrder = () => rowsOf().flat();
+  const rowIndexOf = id => rowsOf().findIndex(r=>r.includes(id));
+  function moveRow(id,dir){ const rows=rowsOf(), i=rowIndexOf(id), j=i+dir; if(i<0||j<0||j>=rows.length) return; const [r]=rows.splice(i,1); rows.splice(j,0,r); state.rows=rows; save(); render(); }
+  function mergeUp(id){ const rows=rowsOf(), i=rowIndexOf(id); if(i<1 || rows[i-1].length>=MAXROW) return;
+    rows[i-1].push(id); rows[i]=rows[i].filter(x=>x!==id); if(!rows[i].length) rows.splice(i,1); state.rows=rows; save(); render(); }
+  function splitOut(id){ const rows=rowsOf(), i=rowIndexOf(id); if(i<0 || rows[i].length<2) return;
+    rows[i]=rows[i].filter(x=>x!==id); rows.splice(i+1,0,[id]); state.rows=rows; save(); render(); }
+  function canMergeUp(id){ const rows=rowsOf(), i=rowIndexOf(id); return i>0 && rows[i-1].length<MAXROW; }
+  function sharesRow(id){ const i=rowIndexOf(id); return i>=0 && state.rows[i].length>1; }
+
+  // time span of an item, for packing rows
+  function spanOf(id){
+    const b=state.berries.find(x=>x.id===id);
+    if(b){ normalize(b); const t=TYPES[b.type]; return [b.plant, b.plant+Math.max(t.grow+PICKUP, b.harvest)]; }
+    const tm=state.timers.find(x=>x.id===id);
+    if(tm){ normalizeTimer(tm); return [tm.start, tm.start+durOf(tm)]; }
+    return [0,0];
+  }
+  function clash(a,b){
+    for(const [s1,l1] of pieces(a[0],a[1]-a[0])) for(const [s2,l2] of pieces(b[0],b[1]-b[0]))
+      if(s1 < s2+l2 && s2 < s1+l1) return true;
+    return false;
+  }
+  // within a row, items that overlap in time get stacked sub-slots
+  function packRow(ids){
+    const slots=[], at={};
+    for(const id of ids){ const sp=spanOf(id); let k=0;
+      while((slots[k]||[]).some(o=>clash(spanOf(o),sp))) k++;
+      (slots[k]=slots[k]||[]).push(id); at[id]=k; }
+    return {at, subs:Math.max(1,slots.length)};
+  }
+  function condenseRows(){
+    const out=[];
+    for(const id of laneOrder()){
+      const sp=spanOf(id);
+      const row=out.find(r=>r.length<MAXROW && r.every(o=>!clash(spanOf(o),sp)));
+      if(row) row.push(id); else out.push([id]);
+    }
+    state.rows=out; save(); render();
+  }
+  function expandRows(){ state.rows=laneOrder().map(id=>[id]); save(); render(); }
+  $('condenseBtn').onclick=condenseRows;
+  $('expandBtn').onclick=expandRows;
   function escape(s){ return s.replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
   // ---------- Dragging ----------
   // Drag a bar sideways to change its time, or up/down to move its row.
   function rowDrag(id){
     const lanesEl=$('lanes'); const laneH=lanesEl.querySelector('.lane')?.offsetHeight||64;
-    return e=>{ const rect=lanesEl.getBoundingClientRect(); const o=laneOrder(); const cur=o.indexOf(id);
-      const target=clamp(Math.floor((e.clientY-rect.top)/laneH), 0, o.length-1);
-      if(target!==cur && cur>=0){ o.splice(cur,1); o.splice(target,0,id); state.order=o; renderLanes(); }
-      document.querySelectorAll('.lane').forEach(l=>l.classList.toggle('lifting', +l.dataset.id===id)); };
+    return e=>{ const rows=rowsOf(), cur=rowIndexOf(id);
+      const laneEls=[...lanesEl.querySelectorAll('.lane')]; if(!laneEls.length) return;
+      let target=laneEls.findIndex(l=>{ const r=l.getBoundingClientRect(); return e.clientY>=r.top && e.clientY<=r.bottom; });
+      if(target<0) target = e.clientY < laneEls[0].getBoundingClientRect().top ? 0 : laneEls.length-1;
+      if(target!==cur && cur>=0){ const [r]=rows.splice(cur,1); rows.splice(target,0,r); state.rows=rows; renderLanes(); }
+      document.querySelectorAll('.sub').forEach(x=>x.classList.toggle('lifting', +x.dataset.id===id)); };
   }
   function axisDrag(ev, id, onMoveX){
     const startX=ev.clientX, startY=ev.clientY; let axis=null; const moveY=rowDrag(id);
@@ -609,7 +702,7 @@
       state.selected=tm.id;
       const startX=ev.clientX, s0=tm.start; let last=s0;
       axisDrag(ev, tm.id, e=>{ const v=mod(snap(s0+(e.clientX-startX)/pph())); if(v===last) return; last=v; tm.start=v; renderLanes(); renderSide();
-        const lane=[...document.querySelectorAll('.lane')].find(l=>+l.dataset.id===tm.id); if(lane) lane.querySelectorAll('.mk.tstart').forEach(x=>x.classList.add('dragging')); });
+        const lane=[...document.querySelectorAll('.sub')].find(l=>+l.dataset.id===tm.id); if(lane) lane.querySelectorAll('.mk.tstart').forEach(x=>x.classList.add('dragging')); });
     });
   }
   function attachMiscEnd(el,tm){
@@ -617,19 +710,25 @@
       if(ev.button!==0) return; ev.preventDefault(); ev.stopPropagation(); state.selected=tm.id;
       const startX=ev.clientX, d0=durOf(tm); let last=d0;
       const move=e=>{ const v=snap(clamp(d0+(e.clientX-startX)/pph(), STEP, WEEK)); if(v===last) return; last=v; tm.hours=v; renderLanes(); renderSide();
-        const lane=[...document.querySelectorAll('.lane')].find(l=>+l.dataset.id===tm.id); if(lane) lane.querySelectorAll('.mk.tend').forEach(x=>x.classList.add('dragging')); };
+        const lane=[...document.querySelectorAll('.sub')].find(l=>+l.dataset.id===tm.id); if(lane) lane.querySelectorAll('.mk.tend').forEach(x=>x.classList.add('dragging')); };
       const up=()=>{ window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',up); window.removeEventListener('pointercancel',up); save(); render(); };
       window.addEventListener('pointermove',move); window.addEventListener('pointerup',up); window.addEventListener('pointercancel',up);
     });
   }
   // After a re-render mid-drag, keep the label of the dragged marker showing (pointer capture continues on the old node, so we only need the visual)
   function markDragging(id,kind,i){
-    const lane=[...document.querySelectorAll('.lane')].find(l=>+l.dataset.id===id); if(!lane) return;
+    const lane=[...document.querySelectorAll('.sub')].find(l=>+l.dataset.id===id); if(!lane) return;
     lane.querySelectorAll(kind==='water' ? `.mk.water[data-idx="${i}"]` : '.mk.harvest').forEach(x=>x.classList.add('dragging'));
   }
 
   // ---------- Side panel ----------
   const labelBox = (obj, ph) => `<label class="f lbl-edit">Label<input type="text" id="labelIn" value="${escape(obj.label||'')}" placeholder="${ph}"></label>`;
+  function wireRowBtns(id){
+    $('upBtn').onclick=()=>moveRow(id,-1); $('downBtn').onclick=()=>moveRow(id,1);
+    const btn=$('rowBtn'); if(!btn) return;
+    if(sharesRow(id)){ btn.textContent='Split out'; btn.title='Give this its own row'; btn.disabled=false; btn.onclick=()=>splitOut(id); }
+    else { btn.textContent='Merge ↑'; btn.title='Share the row above (up to 3 per row)'; btn.disabled=!canMergeUp(id); btn.onclick=()=>mergeUp(id); }
+  }
   function wireLabel(obj){ const i=$('labelIn'); if(!i) return;
     i.addEventListener('input', ()=>{ obj.label=i.value.trim(); save(); renderLanes(); renderTodo(); });
     i.addEventListener('keydown', e=>{ if(e.key==='Enter') i.blur(); });
@@ -643,10 +742,10 @@
         <div class="events"><div class="t">${fmt(tm.start)}</div><div class="p">${escape(tName(tm))}</div>
         <div class="t">${fmt(tm.start+D)}</div><div class="r">${tm.kind==='misc'?'Ends':'Ready again'} <span class="note">${dur(D)} later${tm.kind==='misc'?', drag the end to change':''}</span></div></div>
         <div class="muted" style="margin-top:8px">Use ← → to nudge by 30 min, ↑ ↓ to move the row.</div>
-        <div class="actions"><button id="upBtn" title="Move up">▲</button><button id="downBtn" title="Move down">▼</button><button id="dupBtn">Duplicate</button><button id="delBtn" class="danger">Remove</button></div>`;
-      wireLabel(tm); $('upBtn').onclick=()=>moveLane(tm.id,-1); $('downBtn').onclick=()=>moveLane(tm.id,1);
+        <div class="actions"><button id="upBtn" title="Move row up">▲</button><button id="downBtn" title="Move row down">▼</button><button id="rowBtn"></button><button id="dupBtn">Duplicate</button><button id="delBtn" class="danger">Remove</button></div>`;
+      wireLabel(tm); wireRowBtns(tm.id);
       $('dupBtn').onclick=()=>{ const c={...tm, id:nextId++, start:mod(tm.start+(tm.kind==='misc'?24:D))};
-        const o=laneOrder(); o.splice(o.indexOf(tm.id)+1,0,c.id);   // place in the order before it exists, so laneOrder can't append it too
+        const rows=rowsOf(); rows.splice(rowIndexOf(tm.id)+1,0,[c.id]); state.rows=rows;
         state.timers.splice(state.timers.indexOf(tm)+1,0,c); state.selected=c.id; save(); render(); };
       $('delBtn').onclick=()=>{ state.timers=state.timers.filter(x=>x!==tm); state.selected=null; save(); render(); };
     }
@@ -660,7 +759,7 @@
       });
       rows += `<div class="t">${fmt(b.plant+t.grow)}</div><div class="r">Ready <span class="note">${dur(t.grow)} after planting</span></div>`;
       const hs = t.grow+PICKUP-b.harvest;
-      rows += `<div class="t">${fmt(b.plant+b.harvest)}</div><div class="h">Harvest <span class="note">${hs>0?`${dur(hs)} before deadline`:'last possible moment'}</span></div>`;
+      rows += `<div class="t">${fmt(b.plant+b.harvest)}</div><div class="h">Harvest <span class="note">${b.harvest<=t.grow?'as soon as it\'s ready':hs>0?`${dur(hs)} before deadline`:'last possible moment'}</span></div>`;
       const info=BDATA[b.name]; const plots=totalPlots(); const yr=yieldRange(b.name); const sc=seedCounts(b.name);
       const paidWaters=b.waters.filter(w=>!(state.pw && w===0)).length;
       const mins={plant:allAlts('plant'), water:allAlts('water')*paidWaters, harvest:allAlts('harvest')};
@@ -679,11 +778,11 @@
         ${labelBox(b, 'e.g. Full Harvest, plot 3')}
         <div class="events">${rows}</div>
         <div class="muted" style="margin-top:8px">${b.waters.length} watering${b.waters.length===1?'':'s'} · ${dur(b.harvest)} plant-to-harvest. Use ← → to nudge by 30 min, ↑ ↓ to move the row.</div>${extra}
-        <div class="actions"><button id="upBtn" title="Move up">▲</button><button id="downBtn" title="Move down">▼</button><button id="dupBtn">Duplicate</button><button id="resetBtn">Reset timings</button><button id="delBtn" class="danger">Remove</button></div>`;
-      wireLabel(b); $('upBtn').onclick=()=>moveLane(b.id,-1); $('downBtn').onclick=()=>moveLane(b.id,1);
+        <div class="actions"><button id="upBtn" title="Move row up">▲</button><button id="downBtn" title="Move row down">▼</button><button id="rowBtn"></button><button id="dupBtn">Duplicate</button><button id="resetBtn">Reset timings</button><button id="delBtn" class="danger">Remove</button></div>`;
+      wireLabel(b); wireRowBtns(b.id);
       $('selFav').onclick=()=>toggleFav(b.name);
       $('dupBtn').onclick=()=>{ const c=JSON.parse(JSON.stringify(b)); c.id=nextId++; c.plant=mod(b.plant+24);
-        const o=laneOrder(); o.splice(o.indexOf(b.id)+1,0,c.id);
+        const rows=rowsOf(); rows.splice(rowIndexOf(b.id)+1,0,[c.id]); state.rows=rows;
         state.berries.splice(state.berries.indexOf(b)+1,0,c); state.selected=c.id; save(); render(); };
       $('resetBtn').onclick=()=>{ b.waters=[]; b.harvest=null; save(); render(); };
       $('delBtn').onclick=()=>{ state.berries=state.berries.filter(x=>x!==b); state.selected=state.berries[0]?.id??null; save(); render(); };
@@ -702,10 +801,7 @@
     for(const tm of state.timers){ const T=TIMERS[tm.kind]; ev.push({t:mod(tm.start), k:T.verb, n:tName(tm), id:tm.id}); }
     ev.sort((a,b)=>a.t-b.t);
     const todo=$('todo'); todo.innerHTML='';
-    $('todoCount').textContent = ev.length ? `${ev.length} actions` : '';
     if(!ev.length){ todo.innerHTML='<div class="muted">Nothing planned yet.</div>'; return; }
-    const totalMin = ev.reduce((m,e)=>m+(e.m||0),0);
-    $('todoCount').textContent = `${ev.length} action${ev.length===1?'':'s'} · ${fmtMin(totalMin)}`;
     let day=-1, grp=null;
     for(const e of ev){
       const d=Math.floor(e.t/24);
@@ -815,7 +911,7 @@
     const b=state.berries.find(x=>x.id===state.selected); const tm=state.timers.find(x=>x.id===state.selected); if(!b && !tm) return;
     const d=(e.key==='ArrowRight'?STEP:-STEP)*(e.shiftKey?12:1);
     if(e.key==='ArrowLeft'||e.key==='ArrowRight'){ if(b) b.plant=mod(b.plant+d); else tm.start=mod(tm.start+d); save(); render(); e.preventDefault(); }
-    if(e.key==='ArrowUp'||e.key==='ArrowDown'){ moveLane(state.selected, e.key==='ArrowUp'?-1:1); e.preventDefault(); }
+    if(e.key==='ArrowUp'||e.key==='ArrowDown'){ moveRow(state.selected, e.key==='ArrowUp'?-1:1); e.preventDefault(); }
     if(e.key==='Delete'||e.key==='Backspace'){ state.berries=state.berries.filter(x=>x!==b); state.timers=state.timers.filter(x=>x!==tm); state.selected=null; save(); render(); }
   });
 
