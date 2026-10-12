@@ -303,7 +303,15 @@
   .gtable tr.fav td{background:rgba(249,226,175,.05)}
   .gtable .pill{font-size:10.5px;padding:0 7px}
   .gtable .seedlist{margin:0}
-  .privacy{max-width:760px;margin:16px auto 0;font-size:11.5px;line-height:1.5;color:var(--overlay0);text-align:center}
+  .backup{display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:8px;margin-top:18px}
+  .bkbtns{display:flex;gap:6px;flex:none}
+  .bkbtns[hidden]{display:none}
+  .filebtn{display:inline-block;cursor:pointer;background:var(--surface0);border:1px solid var(--surface1);border-radius:6px;padding:4px 10px;font-size:12px;line-height:1.45}
+  .filebtn:hover{background:var(--surface1)}
+  .bknote{font-size:11.5px;color:var(--subtext0);text-align:right}
+  .bknote.err{color:var(--red)}
+  .bknote.ok{color:var(--green)}
+  .privacy{max-width:760px;margin:10px auto 0;font-size:11.5px;line-height:1.5;color:var(--overlay0);text-align:center}
   .todo-min{color:var(--overlay1);font-weight:400;font-family:var(--font-mono);font-size:11px;margin-left:8px}
   /* ---------- alts tracker ---------- */
   .altwrap{display:grid;grid-template-columns:215px minmax(0,1fr) 255px;gap:14px;padding:12px;border:1px solid var(--surface0);border-top:0;border-radius:0 0 10px 10px;background:rgba(24,24,37,.5)}
@@ -479,6 +487,17 @@
   <p class="muted" style="margin:10px 0 0">Seeds are what one plot needs to plant that berry. Yield is per plot; the planner uses the median for estimates. Drain is the sheet's thirst rating for the berry. Star a berry to pin it to the top of the picker.</p>
 </div>
 
+<div class="backup">
+  <span class="bknote" id="bkNote"></span>
+  <span class="bkbtns" id="bkBtns">
+    <button class="sm" id="expBtn">Export backup</button>
+    <label class="sm filebtn">Import backup<input type="file" id="impFile" accept="application/json,.json" hidden></label>
+  </span>
+  <span class="bkbtns" id="bkConfirm" hidden>
+    <button class="sm primary" id="bkYes">Replace everything</button>
+    <button class="sm" id="bkNo">Cancel</button>
+  </span>
+</div>
 <p class="privacy">Your week, your alts and your settings live only in this browser, on this device. Nothing is uploaded, nothing is shared with other people using this site, and no one else can read it. Clearing your browser data for this site erases it, so keep your own copy of anything you cannot lose.</p>
 
 <script>
@@ -1249,6 +1268,66 @@
     $('clearAlarmBtn').onclick=()=>{ ALARM.active.clear(); paintAlarms(); };
     alarmUI();
   }
+
+  // ---------- Backup: everything in this browser, out to a file and back ----------
+  // the claude.ai viewer hands files over through its own save prompt; everywhere else a plain link works
+  let dlCap=null;
+  if(window.claude && typeof window.claude.use==='function')
+    try{ window.claude.use('downloads').then(d=>{ dlCap=d; }, ()=>{}); }catch(e){}
+  async function saveFile(filename, text){
+    if(dlCap){
+      try{ await dlCap.save({filename, data:text}); return ['Backup saved.','ok']; }
+      catch(err){ const c=err&&err.code;
+        if(c==='declined') return ['Save cancelled.',''];
+        if(c==='rate_limited') return ['A save prompt is already open.',''];
+        return ['Could not save the backup here.','err']; }
+    }
+    const url=URL.createObjectURL(new Blob([text], {type:'application/json'}));
+    const a=document.createElement('a'); a.href=url; a.download=filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 4000);
+    return ['Backup downloaded.','ok'];
+  }
+  async function exportAll(){
+    let raw={}; try{ raw=JSON.parse(localStorage.getItem('berryWeek')||'{}'); }catch(e){}
+    const data={app:'polys-planner', v:1, saved:new Date().toISOString(), state:raw, chime:customChime||null};
+    const name=(state.ign||'my').replace(/[^A-Za-z0-9_-]/g,'') || 'my';
+    const file=`polys-planner-${name}-${new Date().toISOString().slice(0,10)}.json`;
+    bkSay('Preparing backup…');
+    const [msg,cls]=await saveFile(file, JSON.stringify(data,null,2));
+    bkSay(msg, cls);
+  }
+  function bkSay(msg, cls){ const n=$('bkNote'); n.textContent=msg||''; n.className='bknote'+(cls?' '+cls:''); }
+  let pending=null;
+  function applyImport(d){
+    try{
+      localStorage.setItem('berryWeek', JSON.stringify(d.state));
+      if(d.chime) localStorage.setItem('berryChime', d.chime);
+    }catch(e){ bkSay('Could not save that backup, browser storage is full.', 'err'); return; }
+    location.reload();
+  }
+  $('expBtn').onclick=exportAll;
+  $('impFile').addEventListener('change', e=>{
+    const f=e.target.files && e.target.files[0]; e.target.value='';
+    if(!f) return;
+    const r=new FileReader();
+    r.onerror=()=>bkSay('Could not read that file.', 'err');
+    r.onload=()=>{
+      let d;
+      try{ d=JSON.parse(String(r.result)); }catch(err){ return bkSay('That is not a planner backup.', 'err'); }
+      if(d && !d.state && (Array.isArray(d.berries) || Array.isArray(d.logins))) d={state:d};   // a bare saved state works too
+      const st=d && d.state;
+      if(!st || typeof st!=='object' || (!Array.isArray(st.berries) && !Array.isArray(st.logins)))
+        return bkSay('That file has no planner data in it.', 'err');
+      const nb=(st.berries||[]).length, nt=(st.timers||[]).length, nl=(st.logins||[]).length;
+      pending=d;
+      $('bkBtns').hidden=true; $('bkConfirm').hidden=false;
+      bkSay(`${f.name}: ${nl} login${nl===1?'':'s'}, ${nb} berr${nb===1?'y':'ies'}, ${nt} timer${nt===1?'':'s'}. This replaces what is here.`);
+    };
+    r.readAsText(f);
+  });
+  $('bkYes').onclick=()=>{ if(pending) applyImport(pending); };
+  $('bkNo').onclick=()=>{ pending=null; $('bkConfirm').hidden=true; $('bkBtns').hidden=false; bkSay(''); };
 
   function render(){ renderHead(); renderLanes(); renderSide(); placeNow(); renderTiming(); }
   renderGloss();
