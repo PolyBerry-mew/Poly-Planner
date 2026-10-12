@@ -662,9 +662,16 @@
   if(ASSETS.poly) $('polyImg').src=ASSETS.poly; else $('polyImg').hidden=true;
   function fillTimes(){ for(const id of ['addTime','addTTime']){ const sel=$(id); const cur=sel.value||'0'; sel.innerHTML=''; for(let h=0;h<24;h+=STEP){ const o=document.createElement('option'); o.value=h; o.textContent=fmtT(h); sel.appendChild(o);} sel.value=cur; } }
   fillTimes();
-  $('zoom').value = state.zoom||Math.round(pph());
 
-  function pph(){ if(state.zoom>0) return state.zoom; const w=$('scroller').clientWidth||1200; return Math.max(6, Math.floor(w/DISPH*10)/10); }
+
+  // zooming all the way out stops at one whole Sun -> Sun board, never narrower
+  function fitPph(){ const w=$('scroller').clientWidth||1200; return Math.floor(w/DISPH*10)/10; }
+  function minPph(){ return Math.min(20, Math.max(6, fitPph())); }
+  function pph(){ const lo=minPph(); return state.zoom>0 ? Math.max(lo, state.zoom) : Math.max(lo, fitPph()); }
+  function syncZoom(){ const lo=minPph(), z=$('zoom');
+    z.min=lo; z.step=0.1; if(+z.max<lo) z.max=lo+1;
+    if(state.zoom && state.zoom<lo){ state.zoom=lo; save(); }
+    z.value = state.zoom || Math.round(pph()*10)/10; }
 
   function renderHead(){
     const head=$('dayhead'); head.innerHTML='';
@@ -674,6 +681,7 @@
       [6,12,18].forEach(h=>{ const s=document.createElement('small'); s.style.left=(h*pph())+'px'; s.textContent = state.h12 ? (h===12?'12pm':h<12?h+'am':(h-12)+'pm') : String(h).padStart(2,'0'); el.appendChild(s); });
       head.appendChild(el);
     });
+    syncZoom();
     $('track').style.width = (DISPH*pph())+'px';
     $('lanes').style.setProperty('--daypx', (24*pph())+'px');
     $('lanes').style.setProperty('--sixpx', (6*pph())+'px');
@@ -983,12 +991,13 @@
   const PERBOX = 60;   // a PC box holds 60
   // ditto, breeders and other are measured in PC boxes; raid teams and shinies are counted outright
   const KINDS = {
-    ditto:   {t:'Ditto',     c:'var(--pink)',     tag:'',                u:'box',  up:'boxes'},
-    breeders:{t:'Breeders',  c:'var(--green)',    tag:'Egg group',       u:'box',  up:'boxes'},
+    ditto:   {t:'Ditto',     c:'var(--mauve)',    tag:'',                u:'box',  up:'boxes'},
+    breeders:{t:'Breeders',  c:'var(--blue)',     tag:'Egg group',       u:'box',  up:'boxes'},
     raid:    {t:'Raid team', c:'var(--red)',      tag:'Raid type',       u:'team', up:'teams'},
     shinies: {t:'Shinies',   c:'var(--yellow)',   tag:'',                u:'',     up:'shinies'},
-    other:   {t:'Other',     c:'var(--lavender)', tag:'What is in it',   u:'box',  up:'boxes'},
+    other:   {t:'Other',     c:'var(--subtext0)', tag:'What is in it',   u:'box',  up:'boxes'},
   };
+  const PLOTC='var(--green)', STOREDC='var(--teal)';
   const inBoxes = k => KINDS[k] && KINDS[k].u==='box';
   const amtOf = r => Math.max(0, Number(r.boxes)||0);
   const monsOf = r => inBoxes(r.k) ? Math.round(amtOf(r)*PERBOX) : 0;
@@ -1135,12 +1144,12 @@
     const bx=m=>{ const v=Math.round(m/PERBOX*10)/10; return `${v} box${v===1?'':'es'}`; };
     const tile=(lb,v,sub,c)=>`<div class="tt"${c?` style="--c:${c}"`:''}><small>${lb}</small><b>${v}</b><em>${sub||''}</em></div>`;
     host.innerHTML = `<div class="tthead">All alts</div>
-      ${tile('Plots', n(t.plots), `${t.alts} farming alt${t.alts===1?'':'s'}`, 'var(--mauve)')}
-      ${tile('Ditto', n(t.ditto), bx(t.ditto), 'var(--pink)')}
-      ${tile('Breeders', n(t.breeders), bx(t.breeders), 'var(--green)')}
-      ${tile('Raid teams', n(t.raid), `team${t.raid===1?'':'s'}`, 'var(--red)')}
-      ${tile('Shinies', n(t.shinies), 'caught', 'var(--yellow)')}
-      ${tile('Stored', n(t.mons), `${n(Math.round(t.boxes*10)/10)} box${Math.round(t.boxes*10)/10===1?'':'es'} · ditto + breeders`, 'var(--sapphire)')}`;
+      ${tile('Plots', n(t.plots), `${t.alts} farming alt${t.alts===1?'':'s'}`, PLOTC)}
+      ${tile('Ditto', n(t.ditto), bx(t.ditto), KINDS.ditto.c)}
+      ${tile('Breeders', n(t.breeders), bx(t.breeders), KINDS.breeders.c)}
+      ${tile('Raid teams', n(t.raid), `team${t.raid===1?'':'s'}`, KINDS.raid.c)}
+      ${tile('Shinies', n(t.shinies), 'caught', KINDS.shinies.c)}
+      ${tile('Stored', n(t.mons), `${n(Math.round(t.boxes*10)/10)} box${Math.round(t.boxes*10)/10===1?'':'es'} · ditto + breeders`, STOREDC)}`;
   }
 
   function renderRegions(){
@@ -1469,8 +1478,8 @@
   $('clearBtn').onclick=()=>{ if(!state.berries.length && !state.timers.length) return; if(confirm('Remove every berry and timer from the week?')){ state.berries=[]; state.timers=[]; state.selected=null; save(); render(); } };
 
   $('zoom').oninput=e=>{ state.zoom=+e.target.value; save(); render(); };
-  $('fitBtn').onclick=()=>{ state.zoom=0; $('zoom').value=Math.round(pph()); save(); render(); };
-  window.addEventListener('resize', ()=>{ if(state.zoom===0) render(); });
+  $('fitBtn').onclick=()=>{ state.zoom=0; save(); render(); };
+  window.addEventListener('resize', ()=>{ if(state.zoom===0 || state.zoom<minPph()) render(); else syncZoom(); });
 
   document.addEventListener('keydown', e=>{
     if(e.target.matches('input,select,textarea')) return;
