@@ -306,8 +306,22 @@
   .privacy{max-width:760px;margin:16px auto 0;font-size:11.5px;line-height:1.5;color:var(--overlay0);text-align:center}
   .todo-min{color:var(--overlay1);font-weight:400;font-family:var(--font-mono);font-size:11px;margin-left:8px}
   /* ---------- alts tracker ---------- */
-  .altwrap{display:grid;grid-template-columns:230px 1fr;gap:14px;padding:12px;border:1px solid var(--surface0);border-top:0;border-radius:0 0 10px 10px;background:rgba(24,24,37,.5)}
-  @media (max-width:720px){ .altwrap{grid-template-columns:1fr} }
+  .altwrap{display:grid;grid-template-columns:215px minmax(0,1fr) 255px;gap:14px;padding:12px;border:1px solid var(--surface0);border-top:0;border-radius:0 0 10px 10px;background:rgba(24,24,37,.5)}
+  @media (max-width:1100px){ .altwrap{grid-template-columns:215px minmax(0,1fr)} .altest{grid-column:1 / -1} }
+  @media (max-width:720px){ .altwrap{grid-template-columns:1fr} .altest{grid-column:auto} }
+  .altest{align-self:start}
+  .altest .grid{grid-template-columns:1fr 1fr;gap:7px 9px}
+  .altest select,.altest input[type=number]{width:100%;min-width:0;background:var(--base);border:1px solid var(--surface1);border-radius:6px;padding:4px 7px;min-height:29px;font-family:var(--font-mono);font-size:12px}
+  .altest .tog{font-size:12px;margin:9px 0 4px}
+  .cyc{display:grid;grid-template-columns:1fr auto;gap:3px 10px;font-size:12px;margin-top:9px}
+  .cyc .v{font-family:var(--font-mono);font-variant-numeric:tabular-nums;color:var(--subtext1);text-align:right}
+  .cyc .lb{color:var(--subtext0)}
+  .cyc .tot{border-top:1px solid var(--surface1);margin-top:4px;padding-top:6px;font-weight:600;color:var(--text)}
+  .cyc .tot.v{color:var(--green)}
+  .bigstat{background:var(--base);border:1px solid var(--surface1);border-radius:8px;padding:10px;margin:0 0 12px;text-align:center}
+  .bigstat small{display:block;color:var(--subtext0);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em}
+  .bigstat b{font-family:var(--font-mono);font-size:21px;font-weight:600;color:var(--mauve);line-height:1.25}
+  .bigstat em{display:block;font-style:normal;color:var(--overlay1);font-size:11px;font-family:var(--font-mono)}
   .setupwrap[open] .altwrap{display:grid}
   .setupwrap:not([open]) .altwrap{display:none}
   .altside{align-self:start}
@@ -382,6 +396,7 @@
     <div class="loginlist" id="loginList"></div>
   </div>
   <div class="card" id="altDetail"></div>
+  <div class="card altest" id="altTiming"></div>
 </div>
 </details>
 
@@ -508,6 +523,7 @@
 
   let state = {berries:[], timers:[], zoom:0, h12:true, repeat:true, selected:null,
     ign:'Poly', logins:[], loginSel:-1, favs:[], setupOpen:false, gsort:{k:'t', dir:1}, gseeds:[],
+    times:{plant:3.5, water:2.5, harvest:5.5, misc:1, pw:false}, timeBerry:null,
     alarmWater:false, alarmHarvest:false, alarmVol:65, chime:'bell'}; // zoom 0 = fit the board
   try{ const s = JSON.parse(localStorage.getItem('berryWeek')||'null'); if(s && Array.isArray(s.berries)) state = Object.assign(state, s); }catch(e){}
   if(!Array.isArray(state.timers)) state.timers=[]; state.h12=true; state.repeat=true;
@@ -516,10 +532,15 @@
   if(typeof state.ign!=='string') state.ign='Poly';
   if(!state.gsort) state.gsort={k:'t', dir:1};
   // older saves stored one seed as a string
+  { const d={plant:3.5, water:2.5, harvest:5.5, misc:1, pw:false};
+    state.times = Object.assign(d, state.times && typeof state.times==='object' ? state.times : {});
+    for(const k of ['plant','water','harvest','misc']) state.times[k]=Math.max(0, Number(state.times[k])||0);
+    state.times.pw=!!state.times.pw; }
   if(!Array.isArray(state.gseeds)) state.gseeds = typeof state.gseed==='string' && state.gseed ? [state.gseed] : [];
   let nextId = [...state.berries,...state.timers].reduce((m,b)=>Math.max(m,b.id),0)+1;
 
   function save(){ try{ localStorage.setItem('berryWeek', JSON.stringify({berries:state.berries, timers:state.timers, zoom:state.zoom, h12:state.h12, repeat:state.repeat, selected:state.selected, rows:state.rows||[], favs:state.favs, setupOpen:state.setupOpen, ign:state.ign, logins:state.logins, loginSel:state.loginSel, gsort:state.gsort, gseeds:state.gseeds,
+      times:state.times, timeBerry:state.timeBerry,
       alarmWater:state.alarmWater, alarmHarvest:state.alarmHarvest, alarmVol:state.alarmVol, chime:state.chime})); }catch(e){} }
   const wateringsFor = type => { const t=TYPES[type]; let n=0, dl=t.first; while(dl<t.grow){ n++; dl+=t.next; } return n; };
   const yieldRange = name => { const y=BDATA[name]?.y; if(!y) return null; const [a,b]=String(y).split(/[–-]/).map(Number); return {min:a, max:b, med:(a+b)/2}; };
@@ -902,6 +923,7 @@
   let uidN = 1;
   const newUid = () => 'a'+Date.now().toString(36)+(uidN++).toString(36);
   const newAlt = () => ({uid:newUid(), ign:'', regions:[], mistralton:false, notes:['',''], open:false});
+  const allAlts = () => state.logins.flatMap(L=>L.alts.map(a=>({L,a})));
   function altSummary(){ const n=state.logins.length;
     if(!n) return 'no logins yet';
     return `${n} login${n>1?'s':''} · ${n*3} alts`; }
@@ -961,8 +983,60 @@
   }
 
 
+  // ---------- Round estimate: the alts roster sized against one berry schedule ----------
+  const FULLPLOTS = 156, HALFPLOTS = 72;   // full Unova vs stopped at Mistralton
+  // the jet wins: it means the alt only reached Mistralton, so it farms the half field
+  const altPlots = a => a.mistralton ? HALFPLOTS : (a.regions.includes('unova') ? FULLPLOTS : 0);
+  const mins = m => { m=Math.round(m); const h=Math.floor(m/60);
+    return h ? `${h}h ${String(m%60).padStart(2,'0')}m` : `${m}m`; };
+  function renderTiming(){
+    const host=$('altTiming'); if(!host) return;
+    const T=state.times;
+    const farm = allAlts().map(x=>x.a).map(a=>({a, p:altPlots(a)})).filter(x=>x.p>0);
+    const full = farm.filter(x=>x.p===FULLPLOTS).length, half = farm.length-full;
+    const plots = farm.reduce((n,x)=>n+x.p, 0);
+    const berries = state.berries.slice();
+    let b = berries.find(x=>x.id===state.timeBerry) || berries.find(x=>x.id===state.selected) || berries[0] || null;
+    if(b) normalize(b);
+    const nW = b ? Math.max(0, b.waters.length - (T.pw?1:0)) : 0;
+    const perFull = T.plant + T.harvest + nW*T.water + T.misc;
+    const perHalf = (T.plant + T.harvest + nW*T.water) * (HALFPLOTS/FULLPLOTS);
+    const total = full*perFull + half*perHalf;
+    host.innerHTML = `<div class="head"><h2>Round estimate</h2></div>
+      <div class="bigstat"><small>All alts</small><b>${farm.length?mins(total):'—'}</b>
+        <em>${farm.length} farming · ${plots.toLocaleString('en-US')} plots</em>
+        <em>${full} full · ${half} half</em></div>
+      <label class="f">Berry schedule<select id="tBerry">${
+        berries.length ? berries.map(x=>`<option value="${x.id}"${b&&x.id===b.id?' selected':''}>${escape(bName(x))} ${x.type}h${x.label?' · '+escape(x.label):''}</option>`).join('')
+                       : '<option>no berries on the week</option>'}</select></label>
+      <div class="grid" style="margin-top:9px">
+        <label class="f">Plant<input type="number" id="tPlant" min="0" step="0.25" value="${T.plant}"></label>
+        <label class="f">Water / session<input type="number" id="tWater" min="0" step="0.25" value="${T.water}"></label>
+        <label class="f">Harvest<input type="number" id="tHarvest" min="0" step="0.25" value="${T.harvest}"></label>
+        <label class="f">Misc<input type="number" id="tMisc" min="0" step="0.25" value="${T.misc}"></label>
+      </div>
+      <label class="tog"><input type="checkbox" id="tPW"${T.pw?' checked':''}> Plant + water <span class="muted">one session fewer</span></label>
+      <div class="cyc">
+        <div class="lb">Planting</div><div class="v">${T.plant} min</div>
+        <div class="lb">Watering ${nW}×</div><div class="v">${(nW*T.water).toFixed(2).replace(/\.?0+$/,'')} min</div>
+        <div class="lb">Harvesting</div><div class="v">${T.harvest} min</div>
+        <div class="lb">Misc</div><div class="v">${T.misc} min</div>
+        <div class="lb tot">Full alt · ${FULLPLOTS} plots</div><div class="v tot">${mins(perFull)}</div>
+        <div class="lb">Half alt · ${HALFPLOTS} plots</div><div class="v">${mins(perHalf)}</div>
+      </div>
+      <div class="muted" style="margin-top:8px;font-size:11px">${
+        !farm.length ? 'Mark Unova on an alt, or its Mistralton jet for a half field, to count it in.'
+        : !b ? 'Add a berry to the week to size one round.'
+        : `One pass over every farming alt on this ${escape(bName(b))} schedule. Half alts scale by ${HALFPLOTS}/${FULLPLOTS} of a full one and skip misc.`}</div>`;
+    const num=(id,k)=>{ const e=$(id); e.addEventListener('input',()=>{ T[k]=Math.max(0, +e.value||0); save(); renderTiming(); }); };
+    num('tPlant','plant'); num('tWater','water'); num('tHarvest','harvest'); num('tMisc','misc');
+    $('tPW').onchange=()=>{ T.pw=$('tPW').checked; save(); renderTiming(); };
+    if(berries.length) $('tBerry').onchange=()=>{ state.timeBerry=+$('tBerry').value; save(); renderTiming(); };
+  }
+
   function renderAlts(){
     fixAlts();
+    renderTiming();
     const n=state.logins.length, L=state.logins[state.loginSel]||null;
     $('altSum').textContent = altSummary();
     $('loginList').innerHTML = n
@@ -988,9 +1062,9 @@
     d.querySelectorAll('.altcard').forEach(card=>{
       const a=L.alts[+card.dataset.j];
       card.querySelector('[data-tog]').onclick=()=>{ a.open=!a.open; save(); renderAlts(); };
-      card.querySelectorAll('.jet').forEach(b=>b.onclick=e=>{ e.stopPropagation(); a.mistralton=!a.mistralton; save(); renderAlts(); });
+      card.querySelectorAll('.jet').forEach(b=>b.onclick=e=>{ e.stopPropagation(); a.mistralton=!a.mistralton; save(); renderAlts(); renderTiming(); });
       card.querySelectorAll('svg path[data-r]').forEach(pt=>pt.onclick=()=>{ const k=pt.dataset.r;
-        a.regions = a.regions.includes(k) ? a.regions.filter(x=>x!==k) : [...a.regions,k]; save(); renderAlts(); });
+        a.regions = a.regions.includes(k) ? a.regions.filter(x=>x!==k) : [...a.regions,k]; save(); renderAlts(); renderTiming(); });
       const who=card.querySelector('.who');
       card.querySelectorAll('input[data-f]').forEach(inp=>{
         inp.addEventListener('input',()=>{ const f=inp.dataset.f;
@@ -1176,7 +1250,7 @@
     alarmUI();
   }
 
-  function render(){ renderHead(); renderLanes(); renderSide(); placeNow(); }
+  function render(){ renderHead(); renderLanes(); renderSide(); placeNow(); renderTiming(); }
   renderGloss();
   renderAlts();
  
