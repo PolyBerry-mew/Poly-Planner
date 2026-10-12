@@ -318,6 +318,25 @@
   @media (max-width:1100px){ .altwrap{grid-template-columns:215px minmax(0,1fr)} .altest{grid-column:1 / -1} }
   @media (max-width:720px){ .altwrap{grid-template-columns:1fr} .altest{grid-column:auto} }
   .altest{align-self:start}
+  .alttotals{grid-column:1 / -1;display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px;align-items:stretch}
+  .alttotals .tthead{grid-column:1 / -1;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--subtext0);margin-bottom:-2px}
+  .alttotals .tt{background:var(--mantle);border:1px solid var(--surface0);border-left:3px solid var(--c,var(--surface2));border-radius:9px;padding:7px 10px}
+  .alttotals .tt small{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--subtext0)}
+  .alttotals .tt b{display:block;font-family:var(--font-mono);font-size:18px;font-weight:600;color:var(--c,var(--text));line-height:1.3}
+  .alttotals .tt em{font-style:normal;font-size:10.5px;font-family:var(--font-mono);color:var(--overlay1)}
+  .store{border-top:1px solid var(--surface0);padding-top:8px;display:grid;gap:5px}
+  .srow{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto auto;gap:6px;align-items:center;font-size:12px}
+  .srow .skind{font-family:var(--font-mono);font-size:10.5px;font-weight:600;color:var(--crust);background:var(--c);border-radius:4px;padding:1px 6px;white-space:nowrap}
+  .srow input[type=text]{min-height:26px;padding:2px 7px;font-size:12px;background:var(--mantle);border:1px solid var(--surface1);border-radius:5px;width:100%}
+  .srow .sgap{min-width:0}
+  .srow .sbox{display:flex;align-items:center;gap:3px}
+  .srow .sbox input{width:52px;background:var(--mantle);border:1px solid var(--surface1);border-radius:5px;padding:2px 5px;min-height:26px;font-family:var(--font-mono);font-size:12px;text-align:right}
+  .srow .sbox em{font-style:normal;font-size:10px;color:var(--overlay1);font-family:var(--font-mono)}
+  .srow .smons{font-family:var(--font-mono);font-size:11.5px;color:var(--subtext1);min-width:40px;text-align:right}
+  .srow .x{padding:2px 4px;font-size:13px}
+  .sadd{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px}
+  .sadd button{padding:2px 8px;font-size:11px;border-radius:999px;background:var(--base);border:1px solid var(--surface1);color:var(--c)}
+  .sadd button:hover{background:var(--surface0);border-color:var(--c)}
   .altest .grid{grid-template-columns:1fr 1fr;gap:7px 9px}
   .altest select,.altest input[type=number]{width:100%;min-width:0;background:var(--base);border:1px solid var(--surface1);border-radius:6px;padding:4px 7px;min-height:29px;font-family:var(--font-mono);font-size:12px}
   .altest .tog{font-size:12px;margin:9px 0 4px}
@@ -399,6 +418,7 @@
 <details class="setupwrap" id="setupWrap">
   <summary><span class="chev">▸</span> Alts <span class="muted" id="altSum"></span></summary>
 <div class="altwrap">
+  <div class="alttotals" id="altTotals"></div>
   <div class="card altside">
     <div class="head"><h2>Logins</h2><button class="sm" id="addLogin">+ Add</button></div>
     <div class="loginlist" id="loginList"></div>
@@ -941,7 +961,31 @@
                  {k:'sinnoh',t:'Sinnoh',c:'#89dceb'},{k:'unova',t:'Unova',c:'#cba6f7'},{k:'unova2',t:'Unova 2',c:'#fab387'}];
   let uidN = 1;
   const newUid = () => 'a'+Date.now().toString(36)+(uidN++).toString(36);
-  const newAlt = () => ({uid:newUid(), ign:'', regions:[], mistralton:false, notes:['',''], open:false});
+  const newAlt = () => ({uid:newUid(), ign:'', regions:[], mistralton:false, notes:['',''], storage:[], open:false});
+  const PERBOX = 60;   // a PC box holds 60
+  // ditto, breeders and other are measured in PC boxes; raid teams and shinies are counted outright
+  const KINDS = {
+    ditto:   {t:'Ditto',     c:'var(--pink)',     tag:'',                u:'box',  up:'boxes'},
+    breeders:{t:'Breeders',  c:'var(--green)',    tag:'Egg group',       u:'box',  up:'boxes'},
+    raid:    {t:'Raid team', c:'var(--red)',      tag:'Raid type',       u:'team', up:'teams'},
+    shinies: {t:'Shinies',   c:'var(--yellow)',   tag:'',                u:'',     up:'shinies'},
+    other:   {t:'Other',     c:'var(--lavender)', tag:'What is in it',   u:'box',  up:'boxes'},
+  };
+  const inBoxes = k => KINDS[k] && KINDS[k].u==='box';
+  const amtOf = r => Math.max(0, Number(r.boxes)||0);
+  const monsOf = r => inBoxes(r.k) ? Math.round(amtOf(r)*PERBOX) : 0;
+  function storeTotals(){
+    const t={plots:0, boxes:0, mons:0, alts:0};
+    for(const k of Object.keys(KINDS)) t[k]=0;
+    for(const {a} of allAlts()){
+      const p=altPlots(a); if(p){ t.plots+=p; t.alts++; }
+      for(const r of (a.storage||[])){
+        if(inBoxes(r.k)){ t[r.k]+=monsOf(r); if(r.k==='ditto'||r.k==='breeders'){ t.boxes+=amtOf(r); t.mons+=monsOf(r); } }
+        else t[r.k]+=amtOf(r);
+      }
+    }
+    return t;
+  }
   const allAlts = () => state.logins.flatMap(L=>L.alts.map(a=>({L,a})));
   function altSummary(){ const n=state.logins.length;
     if(!n) return 'no logins yet';
@@ -962,6 +1006,9 @@
         if(!Array.isArray(a.regions)) a.regions=[];
         if(!Array.isArray(a.notes)) a.notes=[];
         a.notes=[String(a.notes[0]||''), String(a.notes[1]||'')];
+        if(!Array.isArray(a.storage)) a.storage=[];
+        a.storage=a.storage.filter(r=>r&&typeof r==='object').map(r=>({
+          k: KINDS[r.k] ? r.k : 'other', tag: String(r.tag||''), boxes: Math.max(0, Number(r.boxes)||0) }));
       }
     }
     if(!(state.loginSel>=0 && state.loginSel<state.logins.length)) state.loginSel = state.logins.length?0:-1;
@@ -998,14 +1045,26 @@
         ).join('')}</div></div>
         <input type="text" data-f="n0" value="${escape(a.notes[0])}" placeholder="Note">
         <input type="text" data-f="n1" value="${escape(a.notes[1])}" placeholder="Note">
+        <div class="store">
+          <div class="slot">Storage${a.storage.length?` · ${a.storage.reduce((n,r)=>n+monsOf(r),0).toLocaleString('en-US')} mons in boxes`:''}</div>
+          ${a.storage.map((r,i)=>{ const K=KINDS[r.k];
+            return `<div class="srow" data-s="${i}" style="--c:${K.c}">
+              <span class="skind">${K.t}</span>
+              ${K.tag ? `<input type="text" data-sf="tag" value="${escape(r.tag)}" placeholder="${K.tag}" autocomplete="off">` : '<span class="sgap"></span>'}
+              <span class="sbox"><input type="number" data-sf="boxes" min="0" step="${K.u==='box'?'0.5':'1'}" value="${amtOf(r)}"><em>${K.u||K.up}</em></span>
+              <span class="smons">${K.u==='box'?monsOf(r).toLocaleString('en-US'):''}</span>
+              <button class="x" data-sdel="1" title="Remove">×</button></div>`; }).join('')}
+          <div class="sadd">${Object.entries(KINDS).map(([k,K])=>
+            `<button class="sm" data-sadd="${k}" style="--c:${K.c}">+ ${K.t}</button>`).join('')}</div>
+        </div>
       </div></div>`;
   }
 
 
   // ---------- Round estimate: the alts roster sized against one berry schedule ----------
   const FULLPLOTS = 156, HALFPLOTS = 72;   // full Unova vs stopped at Mistralton
-  // the jet wins: it means the alt only reached Mistralton, so it farms the half field
-  const altPlots = a => a.mistralton ? HALFPLOTS : (a.regions.includes('unova') ? FULLPLOTS : 0);
+  // a finished Unova is the whole field; the jet only matters on its own, as a half field
+  const altPlots = a => a.regions.includes('unova') ? FULLPLOTS : (a.mistralton ? HALFPLOTS : 0);
   const mins = m => { m=Math.round(m); const h=Math.floor(m/60);
     return h ? `${h}h ${String(m%60).padStart(2,'0')}m` : `${m}m`; };
   function renderTiming(){
@@ -1053,8 +1112,23 @@
     if(berries.length) $('tBerry').onchange=()=>{ state.timeBerry=+$('tBerry').value; save(); renderTiming(); };
   }
 
+  function renderTotals(){
+    const host=$('altTotals'); if(!host) return;
+    const t=storeTotals(), n=v=>v.toLocaleString('en-US');
+    const bx=m=>{ const v=Math.round(m/PERBOX*10)/10; return `${v} box${v===1?'':'es'}`; };
+    const tile=(lb,v,sub,c)=>`<div class="tt"${c?` style="--c:${c}"`:''}><small>${lb}</small><b>${v}</b><em>${sub||''}</em></div>`;
+    host.innerHTML = `<div class="tthead">All alts</div>
+      ${tile('Plots', n(t.plots), `${t.alts} farming alt${t.alts===1?'':'s'}`, 'var(--mauve)')}
+      ${tile('Ditto', n(t.ditto), bx(t.ditto), 'var(--pink)')}
+      ${tile('Breeders', n(t.breeders), bx(t.breeders), 'var(--green)')}
+      ${tile('Raid teams', n(t.raid), `team${t.raid===1?'':'s'}`, 'var(--red)')}
+      ${tile('Shinies', n(t.shinies), 'caught', 'var(--yellow)')}
+      ${tile('Stored', n(t.mons), `${n(Math.round(t.boxes*10)/10)} box${Math.round(t.boxes*10)/10===1?'':'es'} · ditto + breeders`, 'var(--sapphire)')}`;
+  }
+
   function renderAlts(){
     fixAlts();
+    renderTotals();
     renderTiming();
     const n=state.logins.length, L=state.logins[state.loginSel]||null;
     $('altSum').textContent = altSummary();
@@ -1081,10 +1155,21 @@
     d.querySelectorAll('.altcard').forEach(card=>{
       const a=L.alts[+card.dataset.j];
       card.querySelector('[data-tog]').onclick=()=>{ a.open=!a.open; save(); renderAlts(); };
-      card.querySelectorAll('.jet').forEach(b=>b.onclick=e=>{ e.stopPropagation(); a.mistralton=!a.mistralton; save(); renderAlts(); renderTiming(); });
+      card.querySelectorAll('.jet').forEach(b=>b.onclick=e=>{ e.stopPropagation(); a.mistralton=!a.mistralton; save(); renderAlts(); });
       card.querySelectorAll('svg path[data-r]').forEach(pt=>pt.onclick=()=>{ const k=pt.dataset.r;
-        a.regions = a.regions.includes(k) ? a.regions.filter(x=>x!==k) : [...a.regions,k]; save(); renderAlts(); renderTiming(); });
+        a.regions = a.regions.includes(k) ? a.regions.filter(x=>x!==k) : [...a.regions,k]; save(); renderAlts(); });
       const who=card.querySelector('.who');
+      card.querySelectorAll('[data-sadd]').forEach(btn=>btn.onclick=()=>{
+        a.storage.push({k:btn.dataset.sadd, tag:'', boxes:1}); save(); renderAlts(); });
+      card.querySelectorAll('.srow').forEach(row=>{
+        const r=a.storage[+row.dataset.s];
+        row.querySelector('[data-sdel]').onclick=()=>{ a.storage.splice(+row.dataset.s,1); save(); renderAlts(); };
+        row.querySelectorAll('[data-sf]').forEach(inp=>inp.addEventListener('input',()=>{
+          if(inp.dataset.sf==='tag') r.tag=inp.value;
+          else { r.boxes=Math.max(0, +inp.value||0);
+            row.querySelector('.smons').textContent = inBoxes(r.k) ? monsOf(r).toLocaleString('en-US') : ''; }
+          save(); renderTotals(); }));
+      });
       card.querySelectorAll('input[data-f]').forEach(inp=>{
         inp.addEventListener('input',()=>{ const f=inp.dataset.f;
           if(f==='ign'){ a.ign=inp.value; who.textContent=a.ign||'unnamed'; who.classList.toggle('e', !a.ign);
@@ -1329,7 +1414,7 @@
   $('bkYes').onclick=()=>{ if(pending) applyImport(pending); };
   $('bkNo').onclick=()=>{ pending=null; $('bkConfirm').hidden=true; $('bkBtns').hidden=false; bkSay(''); };
 
-  function render(){ renderHead(); renderLanes(); renderSide(); placeNow(); renderTiming(); }
+  function render(){ renderHead(); renderLanes(); renderSide(); placeNow(); renderTiming(); renderTotals(); }
   renderGloss();
   renderAlts();
  
