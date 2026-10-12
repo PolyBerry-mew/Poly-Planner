@@ -50,7 +50,8 @@
   .brand img.logo{height:58px;width:auto}
   .brand img.poly{height:64px;width:auto;margin-left:-6px}
   .brand h1{font-size:22px;line-height:1.15}
-  .ignbox{font:inherit;color:var(--mauve);background:transparent;border:0;border-bottom:1px dashed var(--surface2);border-radius:0;padding:0 2px;min-height:0;min-width:3ch;text-align:right}
+  .ignbox{font:inherit;color:var(--mauve);background:transparent;border:0;border-radius:4px;padding:0 2px;min-height:0;min-width:3ch;text-align:right}
+  .ignbox:hover{background:rgba(203,166,247,.1)}
   .ignbox:hover{border-bottom-color:var(--mauve)}
   .ignbox:focus{outline:none;border-bottom:1px solid var(--mauve)}
   .ignbox::placeholder{color:var(--overlay0)}
@@ -327,7 +328,7 @@
   .tt small{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--subtext0)}
   .tt b{display:block;font-family:var(--font-mono);font-size:18px;font-weight:600;color:var(--c,var(--text));line-height:1.3}
   .tt em{font-style:normal;font-size:10.5px;font-family:var(--font-mono);color:var(--overlay1)}
-  .altstrip{grid-column:1 / -1;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:start}
+  .altstrip{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:start;margin-bottom:12px}
   @media (max-width:980px){ .altstrip{grid-template-columns:1fr} }
   .altregions{display:grid;grid-template-columns:repeat(5,minmax(62px,1fr));gap:8px;align-content:start}
   .altregions .tthead{margin-bottom:-2px}
@@ -427,13 +428,14 @@
     </div></details><button id="condenseBtn" style="padding:3px 9px;font-size:12px" title="Collapse every row to half height">Collapse all</button><button id="expandBtn" style="padding:3px 9px;font-size:12px" title="Give every row its full height">Expand all</button><button id="nowBtn" style="padding:3px 9px;font-size:12px">Now</button><button id="fitBtn" style="padding:3px 9px;font-size:12px">Fit week</button><span>Zoom</span><input type="range" id="zoom" min="6" max="22" step="1" value="9"></div>
 </div>
 
+<div class="altstrip">
+  <div class="alttotals" id="altTotals"></div>
+  <div class="altregions" id="altRegions"></div>
+</div>
+
 <details class="setupwrap" id="setupWrap">
   <summary><span class="chev">▸</span> Alts <span class="muted" id="altSum"></span></summary>
 <div class="altwrap">
-  <div class="altstrip">
-    <div class="alttotals" id="altTotals"></div>
-    <div class="altregions" id="altRegions"></div>
-  </div>
   <div class="card altside">
     <div class="head"><h2>Logins</h2><button class="sm" id="addLogin">+ Add</button></div>
     <div class="loginlist" id="loginList"></div>
@@ -1014,9 +1016,14 @@
     return t;
   }
   const allAlts = () => state.logins.flatMap(L=>L.alts.map(a=>({L,a})));
-  function altSummary(){ const n=state.logins.length;
-    if(!n) return 'no logins yet';
-    return `${n} login${n>1?'s':''} · ${n*3} alts`; }
+  // a blank alt slot is not an alt yet, so only named ones count
+  const namedAlts = L => L.alts.filter(a=>(a.ign||'').trim()).length;
+  function altSummary(){
+    if(!state.logins.length) return 'no logins yet';
+    const al=state.logins.reduce((s,L)=>s+namedAlts(L), 0);
+    const lg=state.logins.filter(L=>namedAlts(L)>0).length;
+    if(!al) return 'no alts named yet';
+    return `${lg} login${lg===1?'':'s'} · ${al} alt${al===1?'':'s'}`; }
 
   function fixAlts(){
     if(!Array.isArray(state.logins)) state.logins=[];
@@ -1213,7 +1220,7 @@
           if(f==='ign'){ a.ign=inp.value; who.textContent=a.ign||'unnamed'; who.classList.toggle('e', !a.ign);
             const b=$('loginList').querySelector(`button[data-i="${state.loginSel}"] small`);
             if(b) b.textContent=L.alts.map(x=>x.ign||'—').join(' · ');
-            renderLanes(); }
+            $('altSum').textContent=altSummary(); renderLanes(); }
           else a.notes[+f[1]]=inp.value;
           save(); }); });
     });
