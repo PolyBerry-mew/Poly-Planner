@@ -281,7 +281,10 @@
   .star.on{color:var(--yellow)} .star:hover{background:none;color:var(--yellow)}
   .berrypick .star{font-size:20px}
   /* glossary */
-  .gloss{margin-top:14px}
+  .glosswrap{margin-top:14px}
+  .glosswrap[open] .gloss{border-radius:0 0 10px 10px;border-top:0}
+  .glosswrap summary .muted{font-weight:400;margin-left:auto;font-family:var(--font-mono);font-size:11px}
+  .gloss{margin-top:0}
   .gloss .head{flex-wrap:wrap}
   .gloss select{background:var(--base);border:1px solid var(--surface1);border-radius:6px;padding:4px 8px;min-height:30px;font-size:12px}
   .gtable th{cursor:pointer;user-select:none}
@@ -314,16 +317,25 @@
   .privacy{max-width:760px;margin:10px auto 0;font-size:11.5px;line-height:1.5;color:var(--overlay0);text-align:center}
   .todo-min{color:var(--overlay1);font-weight:400;font-family:var(--font-mono);font-size:11px;margin-left:8px}
   /* ---------- alts tracker ---------- */
-  .altwrap{display:grid;grid-template-columns:215px minmax(0,1fr) 255px;gap:14px;padding:12px;border:1px solid var(--surface0);border-top:0;border-radius:0 0 10px 10px;background:rgba(24,24,37,.5)}
-  @media (max-width:1100px){ .altwrap{grid-template-columns:215px minmax(0,1fr)} .altest{grid-column:1 / -1} }
+  .altwrap{display:grid;grid-template-columns:248px minmax(0,1fr) 255px;gap:14px;padding:12px;border:1px solid var(--surface0);border-top:0;border-radius:0 0 10px 10px;background:rgba(24,24,37,.5)}
+  @media (max-width:1100px){ .altwrap{grid-template-columns:248px minmax(0,1fr)} .altest{grid-column:1 / -1} }
   @media (max-width:720px){ .altwrap{grid-template-columns:1fr} .altest{grid-column:auto} }
   .altest{align-self:start}
-  .alttotals{grid-column:1 / -1;display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px;align-items:stretch}
-  .alttotals .tthead{grid-column:1 / -1;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--subtext0);margin-bottom:-2px}
-  .alttotals .tt{background:var(--mantle);border:1px solid var(--surface0);border-left:3px solid var(--c,var(--surface2));border-radius:9px;padding:7px 10px}
-  .alttotals .tt small{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--subtext0)}
-  .alttotals .tt b{display:block;font-family:var(--font-mono);font-size:18px;font-weight:600;color:var(--c,var(--text));line-height:1.3}
-  .alttotals .tt em{font-style:normal;font-size:10.5px;font-family:var(--font-mono);color:var(--overlay1)}
+  .alttotals{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px;align-items:stretch}
+  .tthead{grid-column:1 / -1;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--subtext0);margin-bottom:-2px}
+  .tt{background:var(--mantle);border:1px solid var(--surface0);border-left:3px solid var(--c,var(--surface2));border-radius:9px;padding:7px 10px}
+  .tt small{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--subtext0)}
+  .tt b{display:block;font-family:var(--font-mono);font-size:18px;font-weight:600;color:var(--c,var(--text));line-height:1.3}
+  .tt em{font-style:normal;font-size:10.5px;font-family:var(--font-mono);color:var(--overlay1)}
+  .altstrip{grid-column:1 / -1;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:start}
+  @media (max-width:980px){ .altstrip{grid-template-columns:1fr} }
+  .altregions{display:grid;grid-template-columns:repeat(5,minmax(62px,1fr));gap:8px;align-content:start}
+  .altregions .tthead{margin-bottom:-2px}
+  .altregions .rg{background:var(--mantle);border:1px solid var(--surface0);border-top:3px solid var(--c);border-radius:9px;padding:6px 8px;text-align:center}
+  .altregions .rg small{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--subtext0)}
+  .altregions .rg b{display:block;font-family:var(--font-mono);font-size:18px;font-weight:600;color:var(--c);line-height:1.3}
+  .altregions .rg em{display:block;font-style:normal;font-size:10px;font-family:var(--font-mono);color:var(--sky)}
+  .altregions .rg em.none{color:var(--overlay0)}
   .store{border-top:1px solid var(--surface0);padding-top:8px;display:grid;gap:5px}
   .srow{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto auto;gap:6px;align-items:center;font-size:12px}
   .srow .skind{font-family:var(--font-mono);font-size:10.5px;font-weight:600;color:var(--crust);background:var(--c);border-radius:4px;padding:1px 6px;white-space:nowrap}
@@ -418,7 +430,10 @@
 <details class="setupwrap" id="setupWrap">
   <summary><span class="chev">▸</span> Alts <span class="muted" id="altSum"></span></summary>
 <div class="altwrap">
-  <div class="alttotals" id="altTotals"></div>
+  <div class="altstrip">
+    <div class="alttotals" id="altTotals"></div>
+    <div class="altregions" id="altRegions"></div>
+  </div>
   <div class="card altside">
     <div class="head"><h2>Logins</h2><button class="sm" id="addLogin">+ Add</button></div>
     <div class="loginlist" id="loginList"></div>
@@ -500,12 +515,15 @@
   </div>
 </div>
 
+<details class="setupwrap glosswrap" id="glossWrap">
+  <summary><span class="chev">▸</span> Berry glossary <span class="muted" id="gcount"></span></summary>
 <div class="card gloss">
-  <div class="head"><h2>Berry glossary</h2><input type="search" id="gsearch" placeholder="Search berry, seed, effect…"><span class="muted" id="gcount"></span></div>
+  <div class="head"><input type="search" id="gsearch" placeholder="Search berry, seed, effect…"></div>
   <div class="seedtags" id="gseeds" role="group" aria-label="Filter by seed type"></div>
   <div class="gwrap"><table class="gtable" id="gtable"></table></div>
-  <p class="muted" style="margin:10px 0 0">Seeds are what one plot needs to plant that berry. Yield is per plot; the planner uses the median for estimates. Drain is the sheet's thirst rating for the berry. Star a berry to pin it to the top of the picker.</p>
+  <p class="muted" style="margin:10px 0 0">Seeds are what one plot needs to plant that berry. Yield is per plot; the planner uses the median for estimates. Drain is the sheet's thirst rating for the berry. Star a berry to pin it to the top of this list and of the picker.</p>
 </div>
+</details>
 
 <div class="backup">
   <span class="bknote" id="bkNote"></span>
@@ -561,7 +579,7 @@
   const markPos = h => { const u=toDisp(h); return u < DISPH-WEEK ? [u, u+WEEK] : [u]; };
 
   let state = {berries:[], timers:[], zoom:0, h12:true, repeat:true, selected:null,
-    ign:'Poly', logins:[], loginSel:-1, favs:[], setupOpen:false, gsort:{k:'t', dir:1}, gseeds:[],
+    ign:'Poly', logins:[], loginSel:-1, favs:[], setupOpen:false, glossOpen:true, gsort:{k:'t', dir:1}, gseeds:[],
     times:{plant:3.5, water:2.5, harvest:5.5, misc:1, pw:false}, timeBerry:null,
     alarmWater:false, alarmHarvest:false, alarmVol:65, chime:'bell'}; // zoom 0 = fit the board
   try{ const s = JSON.parse(localStorage.getItem('berryWeek')||'null'); if(s && Array.isArray(s.berries)) state = Object.assign(state, s); }catch(e){}
@@ -578,7 +596,7 @@
   if(!Array.isArray(state.gseeds)) state.gseeds = typeof state.gseed==='string' && state.gseed ? [state.gseed] : [];
   let nextId = [...state.berries,...state.timers].reduce((m,b)=>Math.max(m,b.id),0)+1;
 
-  function save(){ try{ localStorage.setItem('berryWeek', JSON.stringify({berries:state.berries, timers:state.timers, zoom:state.zoom, h12:state.h12, repeat:state.repeat, selected:state.selected, rows:state.rows||[], favs:state.favs, setupOpen:state.setupOpen, ign:state.ign, logins:state.logins, loginSel:state.loginSel, gsort:state.gsort, gseeds:state.gseeds,
+  function save(){ try{ localStorage.setItem('berryWeek', JSON.stringify({berries:state.berries, timers:state.timers, zoom:state.zoom, h12:state.h12, repeat:state.repeat, selected:state.selected, rows:state.rows||[], favs:state.favs, setupOpen:state.setupOpen, ign:state.ign, logins:state.logins, loginSel:state.loginSel, glossOpen:state.glossOpen, gsort:state.gsort, gseeds:state.gseeds,
       times:state.times, timeBerry:state.timeBerry,
       alarmWater:state.alarmWater, alarmHarvest:state.alarmHarvest, alarmVol:state.alarmVol, chime:state.chime})); }catch(e){} }
   const wateringsFor = type => { const t=TYPES[type]; let n=0, dl=t.first; while(dl<t.grow){ n++; dl+=t.next; } return n; };
@@ -1080,7 +1098,7 @@
     const perFull = T.plant + T.harvest + nW*T.water + T.misc;
     const perHalf = (T.plant + T.harvest + nW*T.water) * (HALFPLOTS/FULLPLOTS);
     const total = full*perFull + half*perHalf;
-    host.innerHTML = `<div class="head"><h2>Round estimate</h2></div>
+    host.innerHTML = `<div class="head"><h2>Time estimate</h2></div>
       <div class="bigstat"><small>All alts</small><b>${farm.length?mins(total):'—'}</b>
         <em>${farm.length} farming · ${plots.toLocaleString('en-US')} plots</em>
         <em>${full} full · ${half} half</em></div>
@@ -1102,10 +1120,9 @@
         <div class="lb tot">Full alt · ${FULLPLOTS} plots</div><div class="v tot">${mins(perFull)}</div>
         <div class="lb">Half alt · ${HALFPLOTS} plots</div><div class="v">${mins(perHalf)}</div>
       </div>
-      <div class="muted" style="margin-top:8px;font-size:11px">${
+      ${(!farm.length || !b) ? `<div class="muted" style="margin-top:8px;font-size:11px">${
         !farm.length ? 'Mark Unova on an alt, or its Mistralton jet for a half field, to count it in.'
-        : !b ? 'Add a berry to the week to size one round.'
-        : `One pass over every farming alt on this ${escape(bName(b))} schedule. Half alts scale by ${HALFPLOTS}/${FULLPLOTS} of a full one and skip misc.`}</div>`;
+        : 'Add a berry to the week to size one round.'}</div>` : ''}`;
     const num=(id,k)=>{ const e=$(id); e.addEventListener('input',()=>{ T[k]=Math.max(0, +e.value||0); save(); renderTiming(); }); };
     num('tPlant','plant'); num('tWater','water'); num('tHarvest','harvest'); num('tMisc','misc');
     $('tPW').onchange=()=>{ T.pw=$('tPW').checked; save(); renderTiming(); };
@@ -1126,9 +1143,21 @@
       ${tile('Stored', n(t.mons), `${n(Math.round(t.boxes*10)/10)} box${Math.round(t.boxes*10)/10===1?'':'es'} · ditto + breeders`, 'var(--sapphire)')}`;
   }
 
+  function renderRegions(){
+    const host=$('altRegions'); if(!host) return;
+    const alts=allAlts().map(x=>x.a);
+    const done=k=>alts.filter(a=>a.regions.includes(k)).length;
+    const halves=alts.filter(a=>a.mistralton && !a.regions.includes('unova')).length;
+    host.innerHTML = '<div class="tthead">Regions</div>' + REGIONS.filter(r=>!LOCKED.includes(r.k)).map(r=>
+      `<div class="rg" style="--c:${r.c}"><small>${r.t}</small><b>${done(r.k)}</b>`+
+      (r.k==='unova' ? `<em class="${halves?'':'none'}">${halves?`+${halves} half`:'no halves'}</em>` : '<em>&nbsp;</em>')+
+      `</div>`).join('');
+  }
+
   function renderAlts(){
     fixAlts();
     renderTotals();
+    renderRegions();
     renderTiming();
     const n=state.logins.length, L=state.logins[state.loginSel]||null;
     $('altSum').textContent = altSummary();
@@ -1186,6 +1215,8 @@
 
   $('setupWrap').open = !!state.setupOpen;
   $('setupWrap').addEventListener('toggle', ()=>{ state.setupOpen=$('setupWrap').open; save(); });
+  $('glossWrap').open = state.glossOpen !== false;
+  $('glossWrap').addEventListener('toggle', ()=>{ state.glossOpen=$('glossWrap').open; save(); });
 
   const GCOLS=[{k:'fav',t:''},{k:'name',t:'Berry'},{k:'t',t:'Grow'},{k:'waters',t:'Waters'},{k:'y',t:'Yield'},{k:'d',t:'Drain'},{k:'seeds',t:'Seeds per plot'},{k:'e',t:'Effect'}];
   const seedKey = n => (BDATA[n].s||[]).slice().sort().join(', ');
@@ -1213,6 +1244,7 @@
   function renderGloss(){
     const q=($('gsearch').value||'').trim().toLowerCase(), {k,dir}=state.gsort;
     const names=Object.keys(BDATA).sort((a,b)=>{
+      const fa=(isFav(a)?0:1)-(isFav(b)?0:1); if(fa) return fa;   // starred berries ride at the top
       const va=gsortVal(a,k), vb=gsortVal(b,k);
       const c = typeof va==='string' ? va.localeCompare(vb) : va-vb;
       return (c||0)*dir || BDATA[a].t-BDATA[b].t || a.localeCompare(b);
@@ -1414,7 +1446,7 @@
   $('bkYes').onclick=()=>{ if(pending) applyImport(pending); };
   $('bkNo').onclick=()=>{ pending=null; $('bkConfirm').hidden=true; $('bkBtns').hidden=false; bkSay(''); };
 
-  function render(){ renderHead(); renderLanes(); renderSide(); placeNow(); renderTiming(); renderTotals(); }
+  function render(){ renderHead(); renderLanes(); renderSide(); placeNow(); renderTiming(); renderTotals(); renderRegions(); }
   renderGloss();
   renderAlts();
  
