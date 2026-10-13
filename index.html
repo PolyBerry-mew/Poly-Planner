@@ -736,14 +736,14 @@
           const D=Math.min(waterDeadline(b,i), t.grow-STEP), late=i>0 && w>D+1e-9;
           for(const x of markPos(b.plant+w)){
             const mk=el('mk water'+(late?' late':''), off+x*p); mk.dataset.idx=i;
-            mk.title=`Water #${i+1} · ${fmt(b.plant+w)} (safe until ${fmt(b.plant+D)}${i&&t.grace?`, grace to ${fmt(b.plant+Math.min(D+t.grace,t.grow))}`:''})`;
+            mk.title=fmt(b.plant+w);
             mk.innerHTML=`<div class="dot"></div><div class="lbl">${fmtT(b.plant+w)}</div>`;
             attachMarkerDrag(mk,b,i,'water'); lane.appendChild(mk);
           }
         });
         for(const x of markPos(b.plant+b.harvest)){
           const hk=el('mk harvest', off+x*p);
-          hk.title=`Harvest · ${fmt(b.plant+b.harvest)} (latest ${fmt(b.plant+t.grow+PICKUP)})`;
+          hk.title=fmt(b.plant+b.harvest);
           hk.innerHTML=`<div class="dot"></div><div class="lbl">${fmtT(b.plant+b.harvest)}</div>`;
           attachMarkerDrag(hk,b,null,'harvest'); lane.appendChild(hk);
         }
